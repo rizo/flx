@@ -7,17 +7,12 @@
  *)
 
 open struct
-  type 'a iter = ('a -> unit) -> unit
-  type 'a fmt = Format.formatter -> 'a -> unit
-
-  let debug ?(break : unit fmt = Format.pp_print_newline) fmt =
+  let debug ?(break = Format.pp_print_newline) fmt =
     Format.kfprintf (fun f -> break f ()) Format.std_formatter fmt
 
   let string_of_char = String.make 1
   let fail fmt = Format.kasprintf failwith fmt
-  let fmt = Format.asprintf
   let ( = ) : int -> int -> bool = ( = )
-  let ( <> ) : int -> int -> bool = ( <> )
 end
 
 module type Reader = sig
@@ -247,7 +242,8 @@ let rec read lex : Token.t =
   if available = 0 then Eof
   else
     match Reader.next lex.reader with
-    | ' ' -> read lex
+    | ' ' | '\t' -> read lex
+    | '\n' -> read lex
     | ('a' | 'b' | 'c' | 'd') as x -> Id (string_of_char x)
     | ('1' | '2' | '3' | '4') as x -> Int (Char.code x - 48)
     | ',' -> Comma
@@ -494,9 +490,15 @@ and parse_seq_sep ~trailing lex ~delim ~power mk left =
 
 and parse_block lex opening closing mk =
   consume lex opening;
-  let expr = parse_expr lex in
-  consume lex closing;
-  mk expr
+  let tok = peek lex in
+  if Token.eq tok closing then begin
+    consume lex closing;
+    mk (`seq [])
+  end
+  else
+    let expr = parse_expr lex in
+    consume lex closing;
+    mk expr
 
 let parse lex =
   let expr = parse_expr ~rbp:0 lex in

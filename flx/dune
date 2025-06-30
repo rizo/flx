@@ -1,3 +1,10 @@
 (library
  (public_name flx)
- (libraries fmt))
+ (libraries fmt)
+ (modules flx))
+
+(executable
+ (public_name flx)
+ (name cli)
+ (modules cli)
+ (libraries flx))

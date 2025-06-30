@@ -313,11 +313,15 @@ a b c)
 "${""}"
     ($ "" "" "")
 
+"${"${""}"}"
+    ($ "" ($ "" "" "") "")
+
 "aaa ${1}${2} bbb"
     ($ "aaa " 1 "" 2 " bbb")
 
 "aaa ${b "xxx" 1} ccc"
     ($ "aaa " (_ b "xxx" 1) " ccc")
+
 "aaa ${b "xxx ${1} yyy" 1} ccc"
     ($ "aaa " (_ b ($ "xxx " 1 " yyy") 1) " ccc")
 
@@ -329,6 +333,10 @@ a b c)
 
 "hello ${a "
     error: Failure("error: unterminated string literal")
+
+a "" "xxx ${1 b}" c d "yy ${2 "www ${c d ""}"} zz"
+    (_ a "" ($ "xxx " (_ 1 b) "") c d
+       ($ "yy " (_ 2 ($ "www " (_ c d "") "")) " zz"))
 
 
 # Not templates
