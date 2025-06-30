@@ -427,15 +427,9 @@ and parse_template ~start lex =
   let rec loop acc =
     let expr = parse_expr lex in
     match peek lex with
-    | Template_mid "" ->
-      advance lex;
-      loop (expr :: acc)
     | Template_mid str ->
       advance lex;
       loop (`str str :: expr :: acc)
-    | Template_end "" ->
-      advance lex;
-      expr :: acc
     | Template_end str ->
       advance lex;
       `str str :: expr :: acc
@@ -445,16 +439,10 @@ and parse_template ~start lex =
         pp_sexp expr
     (* acc *)
   in
-  match (start, peek lex) with
-  | "", Template_end "" ->
+  match peek lex with
+  | Template_end end_str ->
     advance lex;
-    `template []
-  | "", Template_end end_str ->
-    advance lex;
-    `template [ `str end_str ]
-  | start, Template_end "" ->
-    advance lex;
-    `template [ `str start ]
+    `template [ `str start; `str end_str ]
   | _ ->
     let tpl = List.rev (loop [ `str start ]) in
     `template tpl

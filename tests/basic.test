@@ -300,12 +300,21 @@ a b c)
 
 
 # Templates: edge cases
+
 "${}"
+    ($ "" "")
+
 "X${}"
+    ($ "X" "")
+
 "${}X"
+    ($ "" "X")
+
 "${""}"
+    ($ "" "" "")
+
 "aaa ${1}${2} bbb"
-    ($ "aaa " 1 2 " bbb")
+    ($ "aaa " 1 "" 2 " bbb")
 
 "aaa ${b "xxx" 1} ccc"
     ($ "aaa " (_ b "xxx" 1) " ccc")
