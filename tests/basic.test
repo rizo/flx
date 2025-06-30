@@ -3,71 +3,6 @@ a
     a
 
 
-# Strings
-
-""
-    ""
-
-"a"
-    "a"
-
-"hello world!"
-    "hello world!"
-
-"hello \"world\"!"
-    "hello \"world\"!"
-
-"literal escape sequences: \" \' \ \\ \$"
-    "literal escape sequences: \" '  \\ $"
-
-"special escape seqs: \n \r \t \b"
-    "special escape seqs: \n \r \t \b"
-
-"a", "bb", "ccc"
-    (, "a" "bb" "ccc")
-
-# Templates
-
-"aaa ${1}"
-    ($ "aaa " 1 "")
-
-"aaa ${1} bbb"
-    ($ "aaa " 1 " bbb")
-
-"${1} aaa"
-    ($ "" 1 " aaa")
-
-"aaa ${1} bbb ${2}"
-    ($ "aaa " 1 " bbb " 2 "")
-
-"aaa ${1} bbb ${2} ccc"
-    ($ "aaa " 1 " bbb " 2 " ccc")
-
-"hello ${a b c}"
-    ($ "hello " (_ a b c) "")
-
-"hello ${a b c} world"
-    ($ "hello " (_ a b c) " world")
-
-
-# Templates: edge cases
-"${}"
-"${""}"
-"${a "bbb" c}"
-
-
-# Templates: errors
-"hello ${"
-
-
-# Not templates
-# "$"
-# "a$"
-"$a"
-    "$a"
-"a$b"
-    "a$b"
-
 # Operators
 # +
 #     +
@@ -315,3 +250,82 @@ a)
 
 a b c)
     error: Failure("parsing stopped at: `)`")
+
+
+# Strings
+
+""
+    ""
+
+"a"
+    "a"
+
+"hello world!"
+    "hello world!"
+
+"hello \"world\"!"
+    "hello \"world\"!"
+
+"literal escape sequences: \" \' \ \\ \$"
+    "literal escape sequences: \" '  \\ $"
+
+"special escape seqs: \n \r \t \b"
+    "special escape seqs: \n \r \t \b"
+
+"a", "bb", "ccc"
+    (, "a" "bb" "ccc")
+
+# Templates
+
+"aaa ${1}"
+    ($ "aaa " 1 "")
+
+"aaa ${1} bbb"
+    ($ "aaa " 1 " bbb")
+
+"${1} aaa"
+    ($ "" 1 " aaa")
+
+"aaa ${1} bbb ${2}"
+    ($ "aaa " 1 " bbb " 2 "")
+
+"aaa ${1} bbb ${2} ccc"
+    ($ "aaa " 1 " bbb " 2 " ccc")
+
+"hello ${a b c}"
+    ($ "hello " (_ a b c) "")
+
+"hello ${a b c} world"
+    ($ "hello " (_ a b c) " world")
+
+
+# Templates: edge cases
+"${}"
+"X${}"
+"${}X"
+"${""}"
+"aaa ${1}${2} bbb"
+    ($ "aaa " 1 2 " bbb")
+
+"aaa ${b "xxx" 1} ccc"
+    ($ "aaa " (_ b "xxx" 1) " ccc")
+"aaa ${b "xxx ${1} yyy" 1} ccc"
+    ($ "aaa " (_ b ($ "xxx " 1 " yyy") 1) " ccc")
+
+"aaaa ${
+    error: Failure("start: unexpected eof")
+
+"aaaa ${1}
+    error: Failure("error: unterminated template string")
+
+"hello ${a "
+    error: Failure("error: unterminated string literal")
+
+
+# Not templates
+# "$"
+# "a$"
+"$a"
+    "$a"
+"a$b"
+    "a$b"

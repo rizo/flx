@@ -239,7 +239,7 @@ type lexer = {
   reader : Reader.t;
   mutable token : Token.t option;
   strbuf : Buffer.t;
-  mutable template_level : int option;
+  mutable tplnum : int;
 }
 
 let rec read lex : Token.t =
@@ -257,10 +257,10 @@ let rec read lex : Token.t =
     | '{' -> Lbrace
     | ')' -> Rparen
     | ']' -> Rbracket
-    | '"' -> read_string lex
-    | '}' when Option.is_some lex.template_level ->
-      decr_template_level lex;
-      read_string lex
+    | '"' -> read_string ~in_template:false lex
+    | '}' when lex.tplnum > 0 ->
+      lex.tplnum <- lex.tplnum - 1;
+      read_string ~in_template:true lex
     | '}' -> Rbrace
     | op0 when is_op_char op0 ->
       let buf = Buffer.create 4 in
@@ -280,24 +280,18 @@ let rec read lex : Token.t =
       Sym op
     | c -> unexpected (string_of_char c)
 
-and read_string lex =
+and read_string ~in_template lex =
   let available = Reader.request lex.reader 1 in
-  if available = 0 then fail "error: unterminated string"
+  if available = 0 then
+    fail "error: unterminated %s"
+      (if in_template then "template string" else "string literal")
   else
     match Reader.next lex.reader with
     (* End of string *)
     | '"' ->
       let str = Buffer.contents lex.strbuf in
       Buffer.reset lex.strbuf;
-      begin
-        match lex.template_level with
-        | None -> Str str
-        | Some 0 ->
-          lex.template_level <- None;
-          Template_end str
-        | Some l ->
-          fail "unbalanced template block: %d off=%d" l lex.reader.offset
-      end
+      if in_template then Template_end str else Str str
     (* Escape sequences *)
     | '\\' -> begin
       let available = Reader.request lex.reader 1 in
@@ -306,58 +300,52 @@ and read_string lex =
         match Reader.next lex.reader with
         | ('"' | '\'' | ' ' | '\\' | '$') as c ->
           Buffer.add_char lex.strbuf c;
-          read_string lex
+          read_string ~in_template lex
         | 'n' ->
           Buffer.add_char lex.strbuf '\n';
-          read_string lex
+          read_string ~in_template lex
         | 'r' ->
           Buffer.add_char lex.strbuf '\r';
-          read_string lex
+          read_string ~in_template lex
         | 't' ->
           Buffer.add_char lex.strbuf '\t';
-          read_string lex
+          read_string ~in_template lex
         | 'b' ->
           Buffer.add_char lex.strbuf '\b';
-          read_string lex
+          read_string ~in_template lex
         | unknown -> fail "error: unknown escape sequence: \\%c" unknown
     end
-    (* Template *)
     | '$' -> begin
       let available = Reader.request lex.reader 1 in
       if available = 0 then fail "error: unterminated string after '$'"
       else
         match Reader.next lex.reader with
+        (* Start template *)
         | '{' ->
-          let is_template_start = Option.is_none lex.template_level in
-          incr_template_level lex;
           let str = Buffer.contents lex.strbuf in
           Buffer.reset lex.strbuf;
-          if is_template_start then Template_start str else Template_mid str
+          lex.tplnum <- lex.tplnum + 1;
+          if in_template then Template_mid str else Template_start str
         | c ->
           Buffer.add_char lex.strbuf '$';
           Buffer.add_char lex.strbuf c;
-          read_string lex
+          read_string ~in_template lex
     end
     (* String char *)
     | c ->
       Buffer.add_char lex.strbuf c;
-      read_string lex
+      read_string ~in_template lex
 
-and incr_template_level lex =
-  match lex.template_level with
-  | None -> lex.template_level <- Some 1
-  | Some n -> lex.template_level <- Some (n + 1)
-
-and decr_template_level lex =
-  match lex.template_level with
-  | None -> fail "error: decr_template_level: template_level is None"
-  | Some n -> lex.template_level <- Some (n - 1)
+(* let read lex = *)
+(*   let tok = read lex in *)
+(*   debug "read: tok=%a" Token.pp tok; *)
+(*   tok *)
 
 module Lexer = struct
   let of_string str =
     let reader = Reader.of_string str in
     let strbuf = Buffer.create 64 in
-    { reader; token = None; strbuf; template_level = None }
+    { reader; token = None; strbuf; tplnum = 0 }
 end
 
 let advance lex = lex.token <- Some (read lex)
@@ -383,11 +371,13 @@ let is_empty lex = Reader.is_empty lex.reader
 
 let rec parse_expr ?(rbp = 0) lex =
   let left = parse_prefix lex in
+  (* debug "parse_expr: left=%a peek=%a" pp_sexp left Token.pp (peek lex); *)
   let expr = parse_infix lex ~rbp left in
   expr
 
 and parse_prefix lex =
   let tok = peek lex in
+  (* debug "parse_prefix: tok=%a" Token.pp tok; *)
   match peek lex with
   | Id id ->
     advance lex;
@@ -408,6 +398,7 @@ and parse_prefix lex =
 
 and parse_infix lex ~rbp left =
   let tok = peek lex in
+  (* debug "parse_infix: tok=%a left=%a" Token.pp tok pp_sexp left; *)
   let power = Power.get tok in
   let lbp = abs power in
   let power = if power < 0 then lbp - 1 else lbp in
@@ -431,20 +422,42 @@ and parse_infix lex ~rbp left =
   else left
 
 and parse_template ~start lex =
+  (* debug "parse_tempalte: start=%S peek=%a" start Token.pp (peek lex); *)
   advance lex;
   let rec loop acc =
     let expr = parse_expr lex in
     match peek lex with
+    | Template_mid "" ->
+      advance lex;
+      loop (expr :: acc)
     | Template_mid str ->
       advance lex;
       loop (`str str :: expr :: acc)
+    | Template_end "" ->
+      advance lex;
+      expr :: acc
     | Template_end str ->
       advance lex;
       `str str :: expr :: acc
-    | _ -> fail "expected end of template"
+    | Template_start _ -> fail "unexpected template start"
+    | unexpected ->
+      fail "expected end of template, got: %a, expr=%a" Token.pp unexpected
+        pp_sexp expr
+    (* acc *)
   in
-  let tpl = List.rev (loop [ `str start ]) in
-  `template tpl
+  match (start, peek lex) with
+  | "", Template_end "" ->
+    advance lex;
+    `template []
+  | "", Template_end end_str ->
+    advance lex;
+    `template [ `str end_str ]
+  | start, Template_end "" ->
+    advance lex;
+    `template [ `str start ]
+  | _ ->
+    let tpl = List.rev (loop [ `str start ]) in
+    `template tpl
 
 and parse_seq lex ~rbp left =
   let rec loop acc =
