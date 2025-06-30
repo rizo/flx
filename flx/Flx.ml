@@ -64,38 +64,103 @@ module Reader = struct
       (String.length t.string) (available t)
 end
 
-(*
-  Operator precedence, also known as binding power, is defined as a number.
+type token =
+  | Id of string
+  | Sym of string
+  | Int of int
+  | Str of string
+  | Char of char
+  | Backtick
+  | Lparen
+  | Rparen
+  | Lbrace
+  | Rbrace
+  | Lbracket
+  | Rbracket
+  | Comma
+  | Semi
+  | Template_start of string
+  | Template_mid of string
+  | Template_end of string
+  | Eof
 
-  Higher numbers represent higher binding power.
+module Token = struct
+  type t = token
 
-  The sign of the number controls associativity. Positive numbers have
-  left-to-right associativity, while negative numbers represent right-to-left
-  associativity. 
+  let pp =
+    let pf = Format.fprintf in
+    fun f token ->
+      match token with
+      | Id x -> pf f "%s" x
+      | Lparen -> pf f "("
+      | Rparen -> pf f ")"
+      | Lbrace -> pf f "{"
+      | Rbrace -> pf f "}"
+      | Lbracket -> pf f "["
+      | Rbracket -> pf f "]"
+      | Backtick -> pf f "`"
+      | Comma -> pf f ","
+      | Semi -> pf f ";"
+      | Str x -> pf f "%S" x
+      | Char x -> pf f "%c" x
+      | Int x -> pf f "%d" x
+      | Sym x -> pf f "%s" x
+      | Template_start x -> pf f "(template-start %S)" x
+      | Template_mid x -> pf f "(template-mid %S)" x
+      | Template_end x -> pf f "(template-end %S)" x
+      | Eof -> pf f "(eof)"
 
-  SEE: https://ocaml.org/manual/5.3/api/Ocaml_operators.html
-*)
+  let pp f t = Fmt.pf f "`%a`" pp t
+  let eq t1 t2 = Stdlib.( = ) t1 t2
+end
+
+(** Operator precedence of the tokens.
+
+    Higher numbers represent higher precedence. For exmaple, [*] has higher
+    precedence than [+], which results in the expression [a + b * c] being
+    parsed as [a + (b * c)].
+
+    The sign of the number controls associativity. Positive numbers have
+    left-to-right associativity, like in [(a + b) + c], while negative numbers
+    represent right-to-left associativity, like in [a = (b = c)].
+
+    Precedence value [0] has a special meaning: it denotes terminator tokens.
+    When a terminator token is encountered, the current expression stops, bigin
+    control to the parent parser.
+
+    Juxtaposition of tokens has a very high precedence. In a way, juxtaposition
+    is like having an invisible operator between [f b]. Since juxtaposition has
+    a high precedence, expressions such as [x = f a + 1] are parsed as
+    [x = ((f a) + 1)].
+
+    The highest precedence is resreved for the [.] operator token, which is even
+    higher than juxtaposition. This ensures that expressions such as [f a.b + 1]
+    are parsed as [(f (a.b)) + 1].
+
+    SEE: https://ocaml.org/manual/5.3/api/Ocaml_operators.html *)
 module Power = struct
-  let semi = 10
-  let comma = 20
-  let colon = 25
+  let juxt = 200
 
-  let get str =
-    match str with
-    | "=" -> -30
-    | "|" -> -40
-    | ":" -> -50
-    | "::" -> 55
-    | "->" -> -60
-    | "!" -> 60
-    | ":=" -> -60
-    | "<-" -> -60
-    | "&" | "&&" -> -70
-    | "||" -> -70
-    | "**" -> -80
-    | "." -> 310
-    | _ -> (
-      match str.[0] with
+  let get (tok : token) =
+    match tok with
+    (* Terminators *)
+    | Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _ -> 0
+    | Semi -> 10
+    | Comma -> 20
+    | Sym "=" -> -30
+    | Sym "|" -> 40
+    | Sym ":" -> -50
+    | Sym "::" -> 55
+    | Sym "->" -> -60
+    | Sym "!" -> 60
+    | Sym ":=" -> -60
+    | Sym "<-" -> -60
+    | Sym ("&" | "&&") -> -70
+    | Sym "||" -> -70
+    | Sym "**" -> -80
+    | Sym "." -> 300
+    | Sym op -> (
+      match op.[0] with
       | '@' -> 100
       | '=' -> 101
       | '<' | '>' -> 102
@@ -105,8 +170,16 @@ module Power = struct
       | '*' | '/' -> 104
       | _ -> 100
     )
-
-  let juxt = 300
+    (* Juxtaposition *)
+    | Id _
+    | Str _
+    | Char _
+    | Int _
+    | Backtick
+    | Lparen
+    | Lbrace
+    | Lbracket
+    | Template_start _ -> juxt
 end
 
 let is_op_char c =
@@ -152,6 +225,8 @@ let rec pp_sexp f t =
   | `postfix (fix, x) -> Fmt.pf f "@[<hv2>(_%s@ %a)@]" fix pp_sexp x
   | `comma [] -> Fmt.pf f "(,)"
   | `comma xs -> Fmt.pf f "(, @[%a@])" (Fmt.list ~sep:Fmt.sp pp_sexp) xs
+  | `dot xs -> Fmt.pf f "(. @[%a@])" (Fmt.list ~sep:Fmt.sp pp_sexp) xs
+  | `pipe xs -> Fmt.pf f "(| @[%a@])" (Fmt.list ~sep:Fmt.sp pp_sexp) xs
   | `semi [] -> Fmt.pf f "(;)"
   | `semi xs -> Fmt.pf f "(; @[%a@])" (Fmt.list ~sep:Fmt.sp pp_sexp) xs
   | `seq [] -> Fmt.pf f "()"
@@ -160,111 +235,158 @@ let rec pp_sexp f t =
   | `template [] -> Fmt.pf f "($)"
   | `template xs -> Fmt.pf f "($ @[<hv2>%a@])" (Fmt.list ~sep:Fmt.sp pp_sexp) xs
 
-type token =
-  | Id of string
-  | Op of string
-  | Int of int
-  | Str of string
-  | Char of char
-  | Backtick
-  | Lparen
-  | Rparen
-  | Lbrace
-  | Rbrace
-  | Lbracket
-  | Rbracket
-  | Comma
-  | Semi
-  | Template_str of string
-  | Template_end of string
-  | Eof
+type lexer = {
+  reader : Reader.t;
+  mutable token : Token.t option;
+  strbuf : Buffer.t;
+  mutable template_level : int option;
+}
 
-module Token = struct
-  type t = token
-
-  let pp =
-    let pf = Format.fprintf in
-    fun f token ->
-      match token with
-      | Id x -> pf f "%s" x
-      | Lparen -> pf f "("
-      | Rparen -> pf f ")"
-      | Lbrace -> pf f "{"
-      | Rbrace -> pf f "}"
-      | Lbracket -> pf f "["
-      | Rbracket -> pf f "]"
-      | Backtick -> pf f "`"
-      | Comma -> pf f ","
-      | Semi -> pf f ";"
-      | Str x -> pf f "%S" x
-      | Char x -> pf f "%c" x
-      | Int x -> pf f "%d" x
-      | Op x -> pf f "%s" x
-      | Template_str x -> pf f "(template-str %S)" x
-      | Template_end x -> pf f "(template-end %S)" x
-      | Eof -> pf f "(eof)"
-
-  let pp f t = Fmt.pf f "`%a`" pp t
-  let eq t1 t2 = Stdlib.( = ) t1 t2
-end
-
-let rec read r : Token.t =
-  let available = Reader.request r 1 in
+let rec read lex : Token.t =
+  let available = Reader.request lex.reader 1 in
   if available = 0 then Eof
   else
-    match Reader.next r with
-    | ' ' -> read r
+    match Reader.next lex.reader with
+    | ' ' -> read lex
     | ('a' | 'b' | 'c' | 'd') as x -> Id (string_of_char x)
     | ('1' | '2' | '3' | '4') as x -> Int (Char.code x - 48)
+    | ',' -> Comma
+    | ';' -> Semi
     | '(' -> Lparen
     | '[' -> Lbracket
     | '{' -> Lbrace
     | ')' -> Rparen
     | ']' -> Rbracket
+    | '"' -> read_string lex
+    | '}' when Option.is_some lex.template_level ->
+      decr_template_level lex;
+      read_string lex
     | '}' -> Rbrace
-    | ',' -> Comma
-    | ';' -> Semi
     | op0 when is_op_char op0 ->
       let buf = Buffer.create 4 in
       Buffer.add_char buf op0;
       let rec loop () =
-        let available = Reader.request r 1 in
+        let available = Reader.request lex.reader 1 in
         if available >= 1 then
-          let c = Reader.peek r in
+          let c = Reader.peek lex.reader in
           if is_op_char c then (
-            Reader.drop r 1;
+            Reader.drop lex.reader 1;
             Buffer.add_char buf c;
             loop ()
           )
       in
       loop ();
       let op = Buffer.contents buf in
-      Op op
+      Sym op
     | c -> unexpected (string_of_char c)
 
-type lexer = { reader : Reader.t; mutable token : Token.t }
+and read_string lex =
+  let available = Reader.request lex.reader 1 in
+  if available = 0 then fail "error: unterminated string"
+  else
+    match Reader.next lex.reader with
+    (* End of string *)
+    | '"' ->
+      let str = Buffer.contents lex.strbuf in
+      Buffer.reset lex.strbuf;
+      begin
+        match lex.template_level with
+        | None -> Str str
+        | Some 0 ->
+          lex.template_level <- None;
+          Template_end str
+        | Some l ->
+          fail "unbalanced template block: %d off=%d" l lex.reader.offset
+      end
+    (* Escape sequences *)
+    | '\\' -> begin
+      let available = Reader.request lex.reader 1 in
+      if available = 0 then fail "error: missing escaped character after '\'"
+      else
+        match Reader.next lex.reader with
+        | ('"' | '\'' | ' ' | '\\' | '$') as c ->
+          Buffer.add_char lex.strbuf c;
+          read_string lex
+        | 'n' ->
+          Buffer.add_char lex.strbuf '\n';
+          read_string lex
+        | 'r' ->
+          Buffer.add_char lex.strbuf '\r';
+          read_string lex
+        | 't' ->
+          Buffer.add_char lex.strbuf '\t';
+          read_string lex
+        | 'b' ->
+          Buffer.add_char lex.strbuf '\b';
+          read_string lex
+        | unknown -> fail "error: unknown escape sequence: \\%c" unknown
+    end
+    (* Template *)
+    | '$' -> begin
+      let available = Reader.request lex.reader 1 in
+      if available = 0 then fail "error: unterminated string after '$'"
+      else
+        match Reader.next lex.reader with
+        | '{' ->
+          let is_template_start = Option.is_none lex.template_level in
+          incr_template_level lex;
+          let str = Buffer.contents lex.strbuf in
+          Buffer.reset lex.strbuf;
+          if is_template_start then Template_start str else Template_mid str
+        | c ->
+          Buffer.add_char lex.strbuf '$';
+          Buffer.add_char lex.strbuf c;
+          read_string lex
+    end
+    (* String char *)
+    | c ->
+      Buffer.add_char lex.strbuf c;
+      read_string lex
+
+and incr_template_level lex =
+  match lex.template_level with
+  | None -> lex.template_level <- Some 1
+  | Some n -> lex.template_level <- Some (n + 1)
+
+and decr_template_level lex =
+  match lex.template_level with
+  | None -> fail "error: decr_template_level: template_level is None"
+  | Some n -> lex.template_level <- Some (n - 1)
 
 module Lexer = struct
   let of_string str =
     let reader = Reader.of_string str in
-    let token = read reader in
-    { reader; token }
+    let strbuf = Buffer.create 64 in
+    { reader; token = None; strbuf; template_level = None }
 end
 
-let peek lex = lex.token
-let advance lex = lex.token <- read lex.reader
+let advance lex = lex.token <- Some (read lex)
+
+let peek lex =
+  let tok =
+    match lex.token with
+    | Some tok -> tok
+    | None ->
+      let tok = read lex in
+      lex.token <- Some tok;
+      tok
+  in
+  (* debug "peek: tok=%a" Token.pp tok; *)
+  tok
 
 let consume lex expected =
-  if Token.eq lex.token expected then lex.token <- read lex.reader
-  else
-    fail "consume: expected %a, actual %a" Token.pp expected Token.pp lex.token
+  let tok = peek lex in
+  if Token.eq tok expected then advance lex
+  else fail "consume: expected %a, actual %a" Token.pp expected Token.pp tok
 
-let rec parse ?power:(rbp = 0) lex =
-  let left = start lex in
-  let expr = continue lex ~rbp left in
+let is_empty lex = Reader.is_empty lex.reader
+
+let rec parse_expr ?(rbp = 0) lex =
+  let left = parse_prefix lex in
+  let expr = parse_infix lex ~rbp left in
   expr
 
-and start lex =
+and parse_prefix lex =
   let tok = peek lex in
   match peek lex with
   | Id id ->
@@ -273,82 +395,91 @@ and start lex =
   | Int int ->
     advance lex;
     `int int
-  | Op op -> parse_prefix lex op
+  | Str str ->
+    advance lex;
+    `str str
+  | Template_start str -> parse_template ~start:str lex
+  | Sym op -> parse_prefix_op lex op
   | Lparen -> parse_block lex tok Rparen (fun x -> `parens x)
   | Lbrace -> parse_block lex tok Rbrace (fun x -> `braces x)
   | Lbracket -> parse_block lex tok Rbracket (fun x -> `brackets x)
   | Eof -> fail "start: unexpected eof"
   | tok -> fail "start: unexpected token: %a" Token.pp tok
 
-and continue lex ~rbp left =
-  match peek lex with
-  | Eof | Rparen | Rbracket | Rbrace -> left
-  | Op op ->
-    let power = Power.get op in
-    let lbp = abs power in
-    if lbp > rbp then
-      let power = if power < 0 then lbp - 1 else lbp in
-      let left' = parse_infix lex ~power op left in
-      continue lex ~rbp left'
-    else left
-  | Comma ->
-    let power = Power.comma in
-    let lbp = abs power in
-    if lbp > rbp then
-      let left' =
-        let power = if power < 0 then lbp - 1 else lbp in
-        parse_seq_delim lex ~delim:Comma ~power left (fun x -> `comma x)
-      in
-      continue lex ~rbp left'
-    else left
-  | Semi ->
-    let power = Power.semi in
-    let lbp = abs power in
-    if lbp > rbp then
-      let left' =
-        let power = if power < 0 then lbp - 1 else lbp in
-        parse_seq_delim lex ~delim:Semi ~power left (fun x -> `semi x)
-      in
-      continue lex ~rbp left'
-    else left
-  | _ ->
-    let left' = parse_seq lex left in
-    continue lex ~rbp left'
+and parse_infix lex ~rbp left =
+  let tok = peek lex in
+  let power = Power.get tok in
+  let lbp = abs power in
+  let power = if power < 0 then lbp - 1 else lbp in
+  let parse =
+    match tok with
+    | Eof | Rparen | Rbracket | Rbrace -> Fun.id
+    | Comma ->
+      parse_seq_sep lex ~delim:tok ~trailing:true ~power (fun x -> `comma x)
+    | Semi ->
+      parse_seq_sep lex ~delim:tok ~trailing:true ~power (fun x -> `semi x)
+    | Sym "." ->
+      parse_seq_sep lex ~delim:tok ~trailing:false ~power (fun x -> `dot x)
+    | Sym "|" ->
+      parse_seq_sep lex ~trailing:false ~delim:tok ~power (fun x -> `pipe x)
+    | Sym op -> parse_infix_op lex ~power op
+    | _ -> parse_seq ~rbp:power lex
+  in
+  if lbp > rbp then
+    let left' = parse left in
+    parse_infix lex ~rbp left'
+  else left
 
-and parse_seq lex left =
+and parse_template ~start lex =
+  advance lex;
   let rec loop acc =
+    let expr = parse_expr lex in
     match peek lex with
-    (* Stop sequence *)
-    | Rparen | Rbrace | Rbracket | Eof | Comma | Semi | Op _ -> acc
-    | _ ->
-      let expr = start lex in
+    | Template_mid str ->
+      advance lex;
+      loop (`str str :: expr :: acc)
+    | Template_end str ->
+      advance lex;
+      `str str :: expr :: acc
+    | _ -> fail "expected end of template"
+  in
+  let tpl = List.rev (loop [ `str start ]) in
+  `template tpl
+
+and parse_seq lex ~rbp left =
+  let rec loop acc =
+    let tok = peek lex in
+    let tok_power = Power.get tok in
+    if tok_power = Power.juxt then
+      let expr = parse_expr ~rbp lex in
       loop (expr :: acc)
+    else acc
   in
   let acc0 = [ left ] in
   let expr_list = List.rev (loop acc0) in
   `seq expr_list
 
-and parse_prefix lex op =
+and parse_prefix_op lex op =
   advance lex;
-  let expr = parse lex in
+  let expr = parse_expr lex in
   `prefix (op, expr)
 
-and parse_infix lex op ~power left =
+and parse_infix_op lex op ~power left =
   advance lex;
   match peek lex with
   | Eof | Rparen | Rbrace | Rbracket | Comma | Semi -> `postfix (op, left)
   | _ ->
-    let right = parse ~power lex in
+    let right = parse_expr ~rbp:power lex in
     `infix (op, left, right)
 
-and parse_seq_delim lex ~delim ~power left mk =
+and parse_seq_sep ~trailing lex ~delim ~power mk left =
   consume lex delim;
   let rec loop acc =
     match peek lex with
     (* Trailing position handling *)
-    | Rparen | Rbrace | Rbracket | Eof -> acc
+    | (Rparen | Rbrace | Rbracket | Eof) when trailing -> acc
     | _ ->
-      let expr = parse ~power lex in
+      let expr = parse_expr ~rbp:power lex in
       let tok = peek lex in
       if Token.eq tok delim then (
         advance lex;
@@ -362,6 +493,11 @@ and parse_seq_delim lex ~delim ~power left mk =
 
 and parse_block lex opening closing mk =
   consume lex opening;
-  let expr = parse lex in
+  let expr = parse_expr lex in
   consume lex closing;
   mk expr
+
+let parse lex =
+  let expr = parse_expr ~rbp:0 lex in
+  if Token.eq (peek lex) Eof then expr
+  else fail "parsing stopped at: %a" Token.pp (peek lex)
