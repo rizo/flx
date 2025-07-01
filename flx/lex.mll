@@ -39,6 +39,10 @@
     let fname = if String.length loc.f_name = 0 then "<input>" else loc.f_name in
     Format.fprintf f "%s: line %d: col %d" fname loc.l_start loc.c_start
 
+  let evict_buffer buf =
+    let str = Buffer.contents buf in
+    Buffer.reset buf;
+    str
 }
 
 (* Ident *)
@@ -97,14 +101,12 @@ rule read lexer = parse
       if lexer.is_template then (
         lexer.template_level <- lexer.template_level + 1
       );
-
       Token.Rbrace
     )
   }
 
   (* String *)
   | '"' {
-    (* Prelude.debug "lexer.is_template=%b lexer.template_level=%d" lexer.is_template lexer.template_level; *)
     lexer.is_template <- false;
     read_string lexer lexbuf
   }
@@ -134,15 +136,8 @@ rule read lexer = parse
 and read_string lexer = parse
   (* End of string *)
   | '"'  {
-    let str = Buffer.contents lexer.strbuf in
-    Buffer.reset lexer.strbuf;
-    if lexer.is_template then (
-      lexer.is_template <- false;
-      Template_end str
-    )
-    else (
-      Str str
-    )
+    let str = evict_buffer lexer.strbuf in
+    if lexer.is_template then Template_end str else  Str str
   }
   (* Escape sequences *)
   | '\\' ('\\' | '\'' | '"' | ' ' | '$' as c) {
@@ -170,8 +165,7 @@ and read_string lexer = parse
       pp_loc (loc lexer) x
   }
   | "${" {
-    let str = Buffer.contents lexer.strbuf in
-    Buffer.reset lexer.strbuf;
+    let str = evict_buffer lexer.strbuf in
     lexer.template_level <- lexer.template_level + 1;
     if lexer.is_template then
       Template_mid str
