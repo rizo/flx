@@ -71,7 +71,17 @@ a, 1; b, 2; c, 3
 (a, b, c,)
     ((_) (, a b c))
 
+()
+    ((_) ())
+{}
+    ({_} ())
+[]
+    ([_] ())
+
 # {;}
+# {,}
+{.}
+    ({_} .)
 
 
 # Infix operators
@@ -128,7 +138,7 @@ a.b.c
     (. a b c)
 
 a.b.c.
-    error: Failure("start: unexpected eof")
+    error: <input>: line 1: col 6: unexpected end of input
 
 a 1 . b 2 3 . c 4
     (_ a (. 1 b) 2 (. 3 c) 4)
@@ -140,6 +150,9 @@ a -> b -> c -> d
     (_->_ a (_->_ b (_->_ c d)))
 
 { a | b | c }
+    ({_} (| a b c))
+
+{ | a | b | c }
     ({_} (| a b c))
 
 a = a = a
@@ -180,8 +193,8 @@ a!, b
 (a!)!
     (_! ((_) (_! a)))
 
-a! | b!
-a! + b!
+# a! | b!
+# a! + b!
 
 a.b.c!
     (_! (. a b c))
@@ -237,19 +250,21 @@ a b c + 1
 
 # TODO: Show where the paren was opened.
 (a
-    error: Failure("consume: expected `)`, actual `(eof)`")
+    error: <input>: line 1: col 2: end of input when expecting `)`
 
 (((a))
-    error: Failure("consume: expected `)`, actual `(eof)`")
+    error: <input>: line 1: col 6: end of input when expecting `)`
 
+)
+    error: <input>: line 1: col 0: invalid token: `)`
 a)
-    error: Failure("parsing stopped at: `)`")
+    error: <input>: line 1: col 1: unexpected token: `)`
 
 (a))
-    error: Failure("parsing stopped at: `)`")
+    error: <input>: line 1: col 3: unexpected token: `)`
 
 a b c)
-    error: Failure("parsing stopped at: `)`")
+    error: <input>: line 1: col 5: unexpected token: `)`
 
 
 # Strings
@@ -325,18 +340,47 @@ a b c)
 "aaa ${b "xxx ${1} yyy" 1} ccc"
     ($ "aaa " (_ b ($ "xxx " 1 " yyy") 1) " ccc")
 
+
+"aaa ${ "xxx" "y${2}y" "zzz"} ccc ${2}"
+    ($ "aaa " (_ "xxx" ($ "y" 2 "y") "zzz") " ccc " 2 "")
+
 "aaaa ${
-    error: Failure("start: unexpected eof")
+    error: <input>: line 1: col 8: unexpected end of input
 
 "aaaa ${1}
-    error: Failure("error: unterminated template string")
+    error: <input>: line 1: col 10: unterminated template string
 
 "hello ${a "
-    error: Failure("error: unterminated string literal")
+    error: <input>: line 1: col 12: unterminated string literal
 
 a "" "xxx ${1 b}" c d "yy ${2 "www ${c d ""}"} zz"
     (_ a "" ($ "xxx " (_ 1 b) "") c d
        ($ "yy " (_ 2 ($ "www " (_ c d "") "")) " zz"))
+
+"aaa ${2 + 2} } bbb"
+    ($ "aaa " (_+_ 2 2) " } bbb")
+
+"aaa ${ (1) } bbb"
+    ($ "aaa " ((_) 1) " bbb")
+
+"aaa ${ {1} } bbb"
+    ($ "aaa " ({_} 1) " bbb")
+
+"aaa ${ {{{1}}} } bbb"
+    ($ "aaa " ({_} ({_} ({_} 1))) " bbb")
+
+
+"aaa ${ {1} 2 {{3}} } bbb"
+    ($ "aaa " (_ ({_} 1) 2 ({_} ({_} 3))) " bbb")
+
+"${{}}"
+    ($ "" ({_} ()) "")
+
+{{}}
+    ({_} ({_} ()))
+
+{{{{}}}}
+    ({_} ({_} ({_} ({_} ()))))
 
 
 # Not templates

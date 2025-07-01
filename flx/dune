@@ -1,7 +1,9 @@
 (library
  (public_name flx)
  (libraries fmt)
- (modules flx))
+ (modules flx expr token lex precedence prelude))
+
+(ocamllex lex)
 
 (executable
  (public_name flx)

@@ -1,6 +1,14 @@
+let print_usage () = Format.eprintf "usage: flx [input_file]"
+
 let () =
   Printexc.record_backtrace true;
-  let str = In_channel.input_all stdin in
-  let lex = Flx.Lexer.of_string str in
+  let lex =
+    match Sys.argv with
+    | [| _; "-" |] | [| _ |] -> Flx.Lex.read_channel stdin
+    | [| _; file_name |] -> Flx.Lex.read_channel ~file_name (open_in file_name)
+    | _ ->
+      print_usage ();
+      exit 1
+  in
   let flx = Flx.parse lex in
-  Format.printf "%a@." Flx.pp_sexp flx
+  Format.printf "%a@." Flx.pp flx
