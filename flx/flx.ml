@@ -55,10 +55,9 @@ and parse_template ~start lex =
     | Template_end str ->
       Lex.move lex;
       `str str :: expr :: acc
-    | Template_start _ -> fail "unexpected template start"
     | unexpected ->
-      fail "expected end of template, got: %a, expr=%a" Token.pp unexpected
-        Expr.pp expr
+      fail "%a: invalid template syntax: %a" Lex.pp_loc (Lex.loc lex) Token.pp
+        unexpected Expr.pp expr
   in
   match Lex.peek lex with
   | Template_end end_str ->

@@ -7,6 +7,7 @@
     mutable line_count : int;
     mutable template_level : int;
     mutable is_template : bool;
+    (* mutable braces : int; *)
   }
 
   let update_loc_ lexer =
@@ -84,6 +85,7 @@ rule read lexer = parse
   | '[' { Token.Lbracket }
   | ']' { Token.Rbracket }
   | '{' {
+    (* Prelude.debug "{{{ lexer.is_template=%b lexer.template_level=%d" lexer.is_template lexer.template_level; *)
     if lexer.is_template then (
       lexer.template_level <- lexer.template_level - 1;
     );
@@ -92,6 +94,7 @@ rule read lexer = parse
 
   (* Rbrace or string tepmlate *)
   | '}' {
+    (* Prelude.debug "}}} lexer.is_template=%b lexer.template_level=%d" lexer.is_template lexer.template_level; *)
     if lexer.template_level > 0 then (
         lexer.is_template <- true;
         lexer.template_level <- lexer.template_level - 1;
@@ -137,7 +140,11 @@ and read_string lexer = parse
   (* End of string *)
   | '"'  {
     let str = evict_buffer lexer.strbuf in
-    if lexer.is_template then Template_end str else  Str str
+    if lexer.is_template then (
+      (* lexer.is_template <- false; *)
+      Template_end str
+    )
+    else  Str str
   }
   (* Escape sequences *)
   | '\\' ('\\' | '\'' | '"' | ' ' | '$' as c) {
