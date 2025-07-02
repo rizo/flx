@@ -2,12 +2,12 @@
   type t = {
     lexbuf : Lexing.lexbuf;
     strbuf : Buffer.t;
-    mutable token : Token.t;
+    token : Token.t ref;
     mutable line_start : int;
     mutable line_count : int;
-    mutable template_level : int;
+    template_level : int ref;
     mutable is_template : bool;
-    mutable braces : int;
+    in_template : bool;
   }
 
   let update_loc_ lexer =
@@ -85,25 +85,16 @@ rule read lexer = parse
   | '[' { Token.Lbracket }
   | ']' { Token.Rbracket }
   | '{' {
-    lexer.braces <- lexer.braces + 1;
     Token.Lbrace
   }
 
   (* Rbrace or string tepmlate *)
   | '}' {
-    (* Close all opened braces first. *)
-    if Int.equal lexer.braces 0 then
-      if lexer.template_level > 0 then (
-        lexer.is_template <- true;
-        lexer.template_level <- lexer.template_level - 1;
-        read_string lexer lexbuf
-      ) else (
-        Token.Rbrace
-      )
-    else (
-      lexer.braces <- lexer.braces - 1;
-      Token.Rbrace
+    if lexer.in_template then (
+      lexer.is_template <- true;
+      read_string lexer lexbuf
     )
+    else Token.Rbrace
   }
 
   (* String *)
@@ -171,7 +162,7 @@ and read_string lexer = parse
   }
   | "${" {
     let str = flush_buffer lexer.strbuf in
-    lexer.template_level <- lexer.template_level + 1;
+    incr lexer.template_level;
     if lexer.is_template then
       Template_mid str
     else (
@@ -200,13 +191,13 @@ and read_string lexer = parse
       line_count = 1;
       line_start = 0;
       lexbuf;
-      token = Eof;
+      token = ref Token.Eof;
       strbuf = Buffer.create 64;
-      template_level = 0;
+      template_level = ref 0;
       is_template = false;
-      braces = 0;
+      in_template = false;
     } in
-    lexer.token <- read lexer lexbuf;
+    lexer.token := read lexer lexbuf;
     lexer
 
   let read_string s =
@@ -219,16 +210,16 @@ and read_string lexer = parse
     read_lexbuf lexbuf
 
   let move lexer =
-    lexer.token <- read lexer lexer.lexbuf
+    lexer.token := read lexer lexer.lexbuf
     (* ; Prelude.debug "tok=%a" Token.pp lexer.token *)
 
 
   let next lexer =
     move lexer;
-    lexer.token
+    !(lexer.token)
 
   let peek lexer =
-    lexer.token
+    !(lexer.token)
 
   let consume lex expected =
     let tok = peek lex in

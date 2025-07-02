@@ -45,7 +45,8 @@ and parse_atom lex atom =
   Lex.move lex;
   atom
 
-and parse_template ~start lex =
+and parse_template ~start lex0 =
+  let lex = { lex0 with Lex.in_template = true } in
   Lex.move lex;
   let rec loop acc =
     let expr = parse_expr lex in
@@ -54,7 +55,7 @@ and parse_template ~start lex =
       Lex.move lex;
       loop (`str str :: expr :: acc)
     | Template_end str ->
-      Lex.move lex;
+      Lex.move lex0;
       `str str :: expr :: acc
     | unexpected ->
       fail "%a: invalid template syntax: %a" Lex.pp_loc (Lex.loc lex) Token.pp
@@ -139,14 +140,15 @@ and parse_sep_end lex ~delim ~rbp mk left =
   mk expr_list
 
 and parse_block lex closing mk =
-  Lex.move lex;
+  let lex' = { lex with in_template = false } in
+  Lex.move lex';
   let tok = Lex.peek lex in
   if Token.eq tok closing then (
     Lex.consume lex closing;
     mk (`seq [])
   )
   else
-    let expr = parse_expr lex in
+    let expr = parse_expr lex' in
     Lex.consume lex closing;
     mk expr
 
