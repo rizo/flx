@@ -3,16 +3,8 @@
     lexbuf : Lexing.lexbuf;
     strbuf : Buffer.t;
     token : Token.t ref;
-    mutable line_start : int;
-    mutable line_count : int;
-    template_level : int ref;
-    mutable is_template : bool;
     in_template : bool;
   }
-
-  let update_loc_ lexer =
-    lexer.line_count <- lexer.line_count + 1;
-    lexer.line_start <- lexer.lexbuf.lex_abs_pos + lexer.lexbuf.lex_curr_pos
 
   let update_loc lexbuf file line absolute chars =
     let pos = lexbuf.Lexing.lex_curr_p in
@@ -90,17 +82,14 @@ rule read lexer = parse
 
   (* Rbrace or string tepmlate *)
   | '}' {
-    if lexer.in_template then (
-      lexer.is_template <- true;
-      read_string lexer lexbuf
-    )
+    if lexer.in_template then
+      read_string true lexer lexbuf
     else Token.Rbrace
   }
 
   (* String *)
   | '"' {
-    lexer.is_template <- false;
-    read_string lexer lexbuf
+    read_string false lexer lexbuf
   }
 
   (* Char *)
@@ -125,12 +114,11 @@ rule read lexer = parse
   }
 
 
-and read_string lexer = parse
+and read_string is_template lexer = parse
   (* End of string *)
   | '"'  {
     let str = flush_buffer lexer.strbuf in
-    if lexer.is_template then (
-      lexer.is_template <- false;
+    if is_template then (
       Template_end str
     )
     else Str str
@@ -138,23 +126,23 @@ and read_string lexer = parse
   (* Escape sequences *)
   | '\\' ('\\' | '\'' | '"' | ' ' | '$' as c) {
     Buffer.add_char lexer.strbuf c;
-    read_string lexer lexbuf
+    read_string is_template lexer lexbuf
   }
   | "\\n" {
     Buffer.add_char lexer.strbuf '\n';
-    read_string lexer lexbuf
+    read_string is_template lexer lexbuf
   }
   | "\\r" {
     Buffer.add_char lexer.strbuf '\r';
-    read_string lexer lexbuf
+    read_string is_template lexer lexbuf
   }
   | "\\t" {
     Buffer.add_char lexer.strbuf '\t';
-    read_string lexer lexbuf
+    read_string is_template lexer lexbuf
   }
   | "\\b" {
     Buffer.add_char lexer.strbuf '\b';
-    read_string lexer lexbuf
+    read_string is_template lexer lexbuf
   }
   | "\\" _ as x {
     Fmt.failwith "%a: invalid escape sequence %S, must be one of:  \\ \" \n \\$"
@@ -162,39 +150,33 @@ and read_string lexer = parse
   }
   | "${" {
     let str = flush_buffer lexer.strbuf in
-    incr lexer.template_level;
-    if lexer.is_template then
+    if is_template then
       Template_mid str
     else (
-      lexer.is_template <- true;
       Template_start str
     )
   }
   | '$' {
     Buffer.add_char lexer.strbuf '$';
-    read_string lexer lexbuf
+    read_string is_template lexer lexbuf
   }
   | [^ '"' '\\' '$']+ {
     let len = lexbuf.lex_curr_pos - lexbuf.lex_start_pos in
     Buffer.add_subbytes lexer.strbuf lexbuf.lex_buffer lexbuf.lex_start_pos len;
-    read_string lexer lexbuf
+    read_string is_template lexer lexbuf
   }
   | eof {
     Fmt.failwith "%a: unterminated %s"
       pp_loc (loc lexer)
-      (if lexer.is_template then "template string" else "string literal")
+      (if is_template then "template string" else "string literal")
   }
 
 {
   let read_lexbuf lexbuf =
     let lexer = {
-      line_count = 1;
-      line_start = 0;
       lexbuf;
       token = ref Token.Eof;
       strbuf = Buffer.create 64;
-      template_level = ref 0;
-      is_template = false;
       in_template = false;
     } in
     lexer.token := read lexer lexbuf;
@@ -229,7 +211,4 @@ and read_string lexer = parse
         Fmt.failwith "%a: end of input when expecting %a" pp_loc (loc lex) Token.pp expected
       else
         Fmt.failwith "%a: expected %a, got %a" pp_loc (loc lex) Token.pp expected Token.pp tok
-
-  let line_number lexer =
-    lexer.line_count
  }
