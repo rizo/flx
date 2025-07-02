@@ -32,6 +32,7 @@ and parse_infix lex ~rbp left =
     | Sym "." -> parse_sep lex ~delim:tok ~rbp (fun x -> `dot x)
     | Sym "|" -> parse_sep lex ~delim:tok ~rbp (fun x -> `pipe x)
     | Sym op -> parse_infix_op lex ~rbp op
+    (* TODO ensure tpl toks are not here *)
     | _ -> parse_seq ~rbp lex
   in
   (* debug "tok=%a lbp=%d rbp=%d" Token.pp tok lbp rbp; *)
@@ -146,11 +147,7 @@ and parse_block lex closing mk =
   )
   else
     let expr = parse_expr lex in
-    ( try Lex.consume lex closing
-      with exn ->
-        (* debug "expr=%a peek=%a" Expr.pp expr Token.pp (Lex.peek lex); *)
-        raise exn
-    );
+    Lex.consume lex closing;
     mk expr
 
 let parse lex =

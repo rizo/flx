@@ -7,7 +7,7 @@
     mutable line_count : int;
     mutable template_level : int;
     mutable is_template : bool;
-    (* mutable braces : int; *)
+    mutable braces : int;
   }
 
   let update_loc_ lexer =
@@ -40,7 +40,7 @@
     let fname = if String.length loc.f_name = 0 then "<input>" else loc.f_name in
     Format.fprintf f "%s: line %d: col %d" fname loc.l_start loc.c_start
 
-  let evict_buffer buf =
+  let flush_buffer buf =
     let str = Buffer.contents buf in
     Buffer.reset buf;
     str
@@ -85,25 +85,23 @@ rule read lexer = parse
   | '[' { Token.Lbracket }
   | ']' { Token.Rbracket }
   | '{' {
-    (* Prelude.debug "{{{ lexer.is_template=%b lexer.template_level=%d" lexer.is_template lexer.template_level; *)
-    if lexer.is_template then (
-      lexer.template_level <- lexer.template_level - 1;
-    );
+    lexer.braces <- lexer.braces + 1;
     Token.Lbrace
   }
 
   (* Rbrace or string tepmlate *)
   | '}' {
-    (* Prelude.debug "}}} lexer.is_template=%b lexer.template_level=%d" lexer.is_template lexer.template_level; *)
-    if lexer.template_level > 0 then (
+    (* Close all opened braces first. *)
+    if Int.equal lexer.braces 0 then
+      if lexer.template_level > 0 then (
         lexer.is_template <- true;
         lexer.template_level <- lexer.template_level - 1;
         read_string lexer lexbuf
-    )
+      ) else (
+        Token.Rbrace
+      )
     else (
-      if lexer.is_template then (
-        lexer.template_level <- lexer.template_level + 1
-      );
+      lexer.braces <- lexer.braces - 1;
       Token.Rbrace
     )
   }
@@ -139,12 +137,12 @@ rule read lexer = parse
 and read_string lexer = parse
   (* End of string *)
   | '"'  {
-    let str = evict_buffer lexer.strbuf in
+    let str = flush_buffer lexer.strbuf in
     if lexer.is_template then (
-      (* lexer.is_template <- false; *)
+      lexer.is_template <- false;
       Template_end str
     )
-    else  Str str
+    else Str str
   }
   (* Escape sequences *)
   | '\\' ('\\' | '\'' | '"' | ' ' | '$' as c) {
@@ -172,7 +170,7 @@ and read_string lexer = parse
       pp_loc (loc lexer) x
   }
   | "${" {
-    let str = evict_buffer lexer.strbuf in
+    let str = flush_buffer lexer.strbuf in
     lexer.template_level <- lexer.template_level + 1;
     if lexer.is_template then
       Template_mid str
@@ -206,6 +204,7 @@ and read_string lexer = parse
       strbuf = Buffer.create 64;
       template_level = 0;
       is_template = false;
+      braces = 0;
     } in
     lexer.token <- read lexer lexbuf;
     lexer
