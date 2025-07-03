@@ -26,7 +26,8 @@ and parse_infix lex ~rbp left =
   let parse =
     let rbp = if precedence < 0 then lbp - 1 else lbp in
     match tok with
-    | Eof | Rparen | Rbracket | Rbrace -> Fun.id
+    | Eof | Rparen | Rbracket | Rbrace | Template_mid _ | Template_end _ ->
+      fun _ -> assert false
     | Comma -> parse_sep_end lex ~delim:tok ~rbp (fun x -> `comma x)
     | Semi -> parse_sep_end lex ~delim:tok ~rbp (fun x -> `semi x)
     | Sym "." -> parse_sep lex ~delim:tok ~rbp (fun x -> `dot x)
@@ -35,27 +36,26 @@ and parse_infix lex ~rbp left =
     (* TODO ensure tpl toks are not here *)
     | _ -> parse_seq ~rbp lex
   in
-  (* debug "tok=%a lbp=%d rbp=%d" Token.pp tok lbp rbp; *)
   if lbp > rbp then
     let left' = parse left in
     parse_infix lex ~rbp left'
   else left
 
 and parse_atom lex atom =
-  Lex.move lex;
+  Lex.next lex;
   atom
 
 and parse_template ~start lex0 =
   let lex = { lex0 with Lex.in_template = true } in
-  Lex.move lex;
+  Lex.next lex;
   let rec loop acc =
     let expr = parse_expr lex in
     match Lex.peek lex with
     | Template_mid str ->
-      Lex.move lex;
+      Lex.next lex;
       loop (`str str :: expr :: acc)
     | Template_end str ->
-      Lex.move lex0;
+      Lex.next lex0;
       `str str :: expr :: acc
     | unexpected ->
       fail "%a: invalid template syntax: %a" Lex.pp_loc (Lex.loc lex) Token.pp
@@ -63,8 +63,12 @@ and parse_template ~start lex0 =
   in
   match Lex.peek lex with
   | Template_end end_str ->
-    Lex.move lex;
+    Lex.next lex0;
     `template [ `str start; `str end_str ]
+  | Template_mid mid_str ->
+    Lex.next lex;
+    let tpl = List.rev (loop [ `str mid_str; `str start ]) in
+    `template tpl
   | _ ->
     let tpl = List.rev (loop [ `str start ]) in
     `template tpl
@@ -83,7 +87,7 @@ and parse_seq lex ~rbp left =
   `seq expr_list
 
 and parse_prefix_op lex op =
-  Lex.move lex;
+  Lex.next lex;
   match Lex.peek lex with
   | Eof | Rparen | Rbrace | Rbracket | Comma | Semi -> `op op
   | _ ->
@@ -91,7 +95,7 @@ and parse_prefix_op lex op =
     `prefix (op, expr)
 
 and parse_infix_op lex op ~rbp left =
-  Lex.move lex;
+  Lex.next lex;
   match Lex.peek lex with
   | Eof | Rparen | Rbrace | Rbracket | Comma | Semi -> `postfix (op, left)
   | _ ->
@@ -99,7 +103,7 @@ and parse_infix_op lex op ~rbp left =
     `infix (op, left, right)
 
 and parse_sep_start lex ~delim mk =
-  Lex.move lex;
+  Lex.next lex;
   let precedence = Precedence.get delim in
   let lbp = abs precedence in
   let rbp = if precedence < 0 then lbp - 1 else lbp in
@@ -112,7 +116,7 @@ and parse_sep lex ~delim ~rbp mk left =
     let expr = parse_expr ~rbp lex in
     let tok = Lex.peek lex in
     if Token.eq tok delim then (
-      Lex.move lex;
+      Lex.next lex;
       loop (expr :: acc)
     )
     else expr :: acc
@@ -130,7 +134,7 @@ and parse_sep_end lex ~delim ~rbp mk left =
       let expr = parse_expr ~rbp lex in
       let tok = Lex.peek lex in
       if Token.eq tok delim then (
-        Lex.move lex;
+        Lex.next lex;
         loop (expr :: acc)
       )
       else expr :: acc
@@ -141,7 +145,7 @@ and parse_sep_end lex ~delim ~rbp mk left =
 
 and parse_block lex closing mk =
   let lex' = { lex with in_template = false } in
-  Lex.move lex';
+  Lex.next lex';
   let tok = Lex.peek lex in
   if Token.eq tok closing then (
     Lex.consume lex closing;

@@ -54,18 +54,18 @@ let digit = ['0'-'9']
 let nonzero = ['1'-'9']
 let int = (digit | nonzero digit+)
 
-rule read lexer = parse
+rule read lex = parse
   (* Whitespace *)
-  | [' ' '\t']+ { read lexer lexbuf }
+  | [' ' '\t']+ { read lex lexbuf }
 
   (* Whitespace: update loc info *)
   | '\n' | '\r' {
     update_loc lexbuf None 1 false 0;
-    read lexer lexbuf
+    read lex lexbuf
   }
 
   (* Line comment *)
-  | "//"[^'\n']* { read lexer lexbuf }
+  | "//"[^'\n']* { read lex lexbuf }
 
   (* Symbols *)
   | '`' { Token.Backtick }
@@ -82,14 +82,14 @@ rule read lexer = parse
 
   (* Rbrace or string tepmlate *)
   | '}' {
-    if lexer.in_template then
-      read_string true lexer lexbuf
+    if lex.in_template then
+      read_string true lex lexbuf
     else Token.Rbrace
   }
 
   (* String *)
   | '"' {
-    read_string false lexer lexbuf
+    read_string false lex lexbuf
   }
 
   (* Char *)
@@ -109,15 +109,16 @@ rule read lexer = parse
 
   | _ { 
     Fmt.failwith "%a: invalid input: %S"
-      pp_loc (loc lexer)
+      pp_loc (loc lex)
       (Lexing.lexeme lexbuf)
   }
 
 
-and read_string is_template lexer = parse
+and read_string is_template lex = parse
   (* End of string *)
   | '"'  {
-    let str = flush_buffer lexer.strbuf in
+    let str = flush_buffer lex.strbuf in
+    (* Prelude.debug "is_template=%b in_template=%b" is_template lex.in_template; *)
     if is_template then (
       Template_end str
     )
@@ -125,31 +126,32 @@ and read_string is_template lexer = parse
   }
   (* Escape sequences *)
   | '\\' ('\\' | '\'' | '"' | ' ' | '$' as c) {
-    Buffer.add_char lexer.strbuf c;
-    read_string is_template lexer lexbuf
+    Buffer.add_char lex.strbuf c;
+    read_string is_template lex lexbuf
   }
   | "\\n" {
-    Buffer.add_char lexer.strbuf '\n';
-    read_string is_template lexer lexbuf
+    Buffer.add_char lex.strbuf '\n';
+    read_string is_template lex lexbuf
   }
   | "\\r" {
-    Buffer.add_char lexer.strbuf '\r';
-    read_string is_template lexer lexbuf
+    Buffer.add_char lex.strbuf '\r';
+    read_string is_template lex lexbuf
   }
   | "\\t" {
-    Buffer.add_char lexer.strbuf '\t';
-    read_string is_template lexer lexbuf
+    Buffer.add_char lex.strbuf '\t';
+    read_string is_template lex lexbuf
   }
   | "\\b" {
-    Buffer.add_char lexer.strbuf '\b';
-    read_string is_template lexer lexbuf
+    Buffer.add_char lex.strbuf '\b';
+    read_string is_template lex lexbuf
   }
   | "\\" _ as x {
     Fmt.failwith "%a: invalid escape sequence %S, must be one of:  \\ \" \n \\$"
-      pp_loc (loc lexer) x
+      pp_loc (loc lex) x
   }
   | "${" {
-    let str = flush_buffer lexer.strbuf in
+    let str = flush_buffer lex.strbuf in
+    (* Prelude.debug "is_template=%b in_template=%b" is_template lex.in_template; *)
     if is_template then
       Template_mid str
     else (
@@ -157,30 +159,30 @@ and read_string is_template lexer = parse
     )
   }
   | '$' {
-    Buffer.add_char lexer.strbuf '$';
-    read_string is_template lexer lexbuf
+    Buffer.add_char lex.strbuf '$';
+    read_string is_template lex lexbuf
   }
   | [^ '"' '\\' '$']+ {
     let len = lexbuf.lex_curr_pos - lexbuf.lex_start_pos in
-    Buffer.add_subbytes lexer.strbuf lexbuf.lex_buffer lexbuf.lex_start_pos len;
-    read_string is_template lexer lexbuf
+    Buffer.add_subbytes lex.strbuf lexbuf.lex_buffer lexbuf.lex_start_pos len;
+    read_string is_template lex lexbuf
   }
   | eof {
     Fmt.failwith "%a: unterminated %s"
-      pp_loc (loc lexer)
+      pp_loc (loc lex)
       (if is_template then "template string" else "string literal")
   }
 
 {
   let read_lexbuf lexbuf =
-    let lexer = {
+    let lex = {
       lexbuf;
       token = ref Token.Eof;
       strbuf = Buffer.create 64;
       in_template = false;
     } in
-    lexer.token := read lexer lexbuf;
-    lexer
+    lex.token := read lex lexbuf;
+    lex
 
   let read_string s =
     let lexbuf = Lexing.from_string s in
@@ -191,21 +193,15 @@ and read_string is_template lexer = parse
     (match file_name with Some f -> Lexing.set_filename lexbuf f | _ -> ());
     read_lexbuf lexbuf
 
-  let move lexer =
-    lexer.token := read lexer lexer.lexbuf
-    (* ; Prelude.debug "tok=%a" Token.pp lexer.token *)
+  let next lex =
+    lex.token := read lex lex.lexbuf
 
-
-  let next lexer =
-    move lexer;
-    !(lexer.token)
-
-  let peek lexer =
-    !(lexer.token)
+  let peek lex =
+    !(lex.token)
 
   let consume lex expected =
     let tok = peek lex in
-    if Token.eq tok expected then move lex
+    if Token.eq tok expected then next lex
     else
       if Token.eq tok Token.Eof then
         Fmt.failwith "%a: end of input when expecting %a" pp_loc (loc lex) Token.pp expected

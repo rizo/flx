@@ -3,3 +3,7 @@ let debug ?(break = Format.pp_print_newline) fmt =
 
 let fail fmt = Format.kasprintf failwith fmt
 let ( = ) : int -> int -> bool = ( = )
+
+let tap f x =
+  f x;
+  x
