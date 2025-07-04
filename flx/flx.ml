@@ -89,7 +89,14 @@ and parse_seq lex ~rbp left =
 and parse_prefix_op lex op =
   Lex.next lex;
   match Lex.peek lex with
-  | Eof | Rparen | Rbrace | Rbracket | Comma | Semi -> `op op
+  | Eof
+  | Rparen
+  | Rbrace
+  | Rbracket
+  | Template_mid _
+  | Template_end _
+  | Comma
+  | Semi -> `op op
   | _ ->
     let expr = parse_expr lex in
     `prefix (op, expr)
@@ -97,7 +104,14 @@ and parse_prefix_op lex op =
 and parse_infix_op lex op ~rbp left =
   Lex.next lex;
   match Lex.peek lex with
-  | Eof | Rparen | Rbrace | Rbracket | Comma | Semi -> `postfix (op, left)
+  | Eof
+  | Rparen
+  | Rbrace
+  | Rbracket
+  | Template_mid _
+  | Template_end _
+  | Comma
+  | Semi -> `postfix (op, left)
   | _ ->
     let right = parse_expr ~rbp lex in
     `infix (op, left, right)

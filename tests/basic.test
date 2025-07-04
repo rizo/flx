@@ -256,7 +256,7 @@ a b c + 1
     error: <input>: line 1: col 6: end of input when expecting `)`
 
 )
-    error: <input>: line 1: col 1: invalid token: `)`
+    error: <input>: line 1: col 0: invalid token: `)`
 a)
     error: <input>: line 1: col 1: unexpected token: `)`
 
@@ -423,6 +423,15 @@ a "" "xxx ${1 b}" c d "yy ${2 "www ${c d ""}"} zz"
 
 "X1${}X2${}X3"
 { "${}" }
+    ({_} ($ "" ""))
 
 "X1${1}X2${{2}}X3"
     ($ "X1" 1 "X2" ({_} 2) "X3")
+
+"X1\${1}X2"
+    "X1${1}X2"
+
+"${minus = "-"?}m${s = side}-${l = int}"
+    ($ "" (_=_ minus (_? "-")) "m" (_=_ s side) "-" (_=_ l int) "")
+"${-}"
+    ($ "" - "")
