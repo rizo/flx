@@ -23,23 +23,22 @@ let pp =
   fun f token ->
     match token with
     | Id x -> pf f "%s" x
-    | Lparen -> pf f "("
-    | Rparen -> pf f ")"
-    | Lbrace -> pf f "{"
-    | Rbrace -> pf f "}"
-    | Lbracket -> pf f "["
-    | Rbracket -> pf f "]"
-    | Backtick -> pf f "`"
-    | Comma -> pf f ","
-    | Semi -> pf f ";"
+    | Lparen -> pf f "'('"
+    | Rparen -> pf f "')'"
+    | Lbrace -> pf f "'{'"
+    | Rbrace -> pf f "'}'"
+    | Lbracket -> pf f "'['"
+    | Rbracket -> pf f "']'"
+    | Backtick -> pf f "'`'"
+    | Comma -> pf f "','"
+    | Semi -> pf f "';'"
     | Str x -> pf f "(str %S)" x
     | Char x -> pf f "(char %c)" x
     | Int x -> pf f "(int %d)" x
-    | Sym x -> pf f "(sym %s)" x
+    | Sym x -> pf f "(sym '%s')" x
     | Template_start x -> pf f "(template-start %S)" x
     | Template_mid x -> pf f "(template-mid %S)" x
     | Template_end x -> pf f "(template-end %S)" x
     | Eof -> pf f "(eof)"
 
-let pp f t = Fmt.pf f "`%a`" pp t
 let eq t1 t2 = Stdlib.( = ) t1 t2

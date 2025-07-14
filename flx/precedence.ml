@@ -36,13 +36,15 @@ let get (tok : Token.t) =
   | Sym ":" -> -50
   | Sym "::" -> 55
   | Sym "->" -> -60
-  | Sym "!" -> 60
+  (* NOTE: ! is prefix-only *)
+  (* | Sym "!" -> 60 *)
   | Sym ":=" -> -60
   | Sym "<-" -> -60
   | Sym ("&" | "&&") -> -70
   | Sym "||" -> -70
   | Sym "**" -> -80
   | Sym "." -> 300
+  | Sym "!" -> juxt
   | Sym op -> (
     match op.[0] with
     | '@' -> 100

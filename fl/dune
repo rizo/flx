@@ -1,0 +1,3 @@
+(executable
+  (name fl)
+  (libraries flx ppxlib.astlib))

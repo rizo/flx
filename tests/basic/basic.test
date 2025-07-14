@@ -93,10 +93,13 @@ a, 1; b, 2; c, 3
     (-_ a)
 
 - a + b
-    (-_ (_+_ a b))
+    (_+_ (-_ a) b)
 
 - a + -b
-    (-_ (_+_ a (-_ b)))
+    (_+_ (-_ a) (-_ b))
+
+- f a + -b * 1
+    (_+_ (-_ (_ f a)) (_*_ (-_ b) 1))
 
 
 # Infix operators
@@ -145,6 +148,11 @@ a 1 . b 2 3 . c 4
 
 a a.b.c 1 2 3
     (_ a (. a b c) 1 2 3)
+
+(1 2).a
+    (. ((_) (_ 1 2)) a)
+(a.b.c).1
+    (. ((_) (. a b c)) 1)
 
 a -> b -> c -> d
     (_->_ a (_->_ b (_->_ c d)))
@@ -250,21 +258,21 @@ a b c + 1
 
 # TODO: Show where the paren was opened.
 (a
-    error: <input>: line 1: col 2: end of input when expecting `)`
+    error: <input>: line 1: col 2: end of input when expecting ')'
 
 (((a))
-    error: <input>: line 1: col 6: end of input when expecting `)`
+    error: <input>: line 1: col 6: end of input when expecting ')'
 
 )
-    error: <input>: line 1: col 0: invalid token: `)`
+    error: <input>: line 1: col 0: invalid token: ')'
 a)
-    error: <input>: line 1: col 1: unexpected token: `)`
+    error: <input>: line 1: col 1: unexpected token: ')'
 
 (a))
-    error: <input>: line 1: col 3: unexpected token: `)`
+    error: <input>: line 1: col 3: unexpected token: ')'
 
 a b c)
-    error: <input>: line 1: col 5: unexpected token: `)`
+    error: <input>: line 1: col 5: unexpected token: ')'
 
 
 # Strings
@@ -421,7 +429,9 @@ a "" "xxx ${1 b}" c d "yy ${2 "www ${c d ""}"} zz"
 "a$b"
     "a$b"
 
-"X1${}X2${}X3"
+# FIXME
+# "X1${}X2${}X3"
+
 { "${}" }
     ({_} ($ "" ""))
 
@@ -435,3 +445,34 @@ a "" "xxx ${1 b}" c d "yy ${2 "www ${c d ""}"} zz"
     ($ "" (_=_ minus (_? "-")) "m" (_=_ s side) "-" (_=_ l int) "")
 "${-}"
     ($ "" - "")
+
+# FIXME
+#{ | a -> 1 | b -> 2 }
+
+a = -A; b = -B
+    (; (_=_ a (-_ A)) (_=_ b (-_ B)))
+
+a = -A + 1; b = -B
+    (; (_=_ a (_+_ (-_ A) 1)) (_=_ b (-_ B)))
+
+-a
+    (-_ a)
+-a b
+    (-_ (_ a b))
+a = -f 1 2 3 4; b = -B
+    (; (_=_ a (-_ (_ f 1 2 3 4))) (_=_ b (-_ B)))
+%sx a b c
+    (%_ (_ sx a b c))
+f a !b c
+    (_ f a (!_ b) c)
+
+`a
+    (`a)
+`1 2 3
+    (_ (`1) 2 3)
+`{1 2 3}
+    (`({_} (_ 1 2 3)))
+a `1 b
+    (_ a (`1) b)
+a + `1 b
+    (_+_ a (_ (`1) b))

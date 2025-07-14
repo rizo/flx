@@ -7,3 +7,10 @@ let ( = ) : int -> int -> bool = ( = )
 let tap f x =
   f x;
   x
+
+module Fmt = struct
+  let pf = Format.fprintf
+  let pr = Format.printf
+  let list ?sep pp l = Format.pp_print_list ?pp_sep:sep pp l
+  let sp = Format.pp_print_space
+end

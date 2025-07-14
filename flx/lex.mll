@@ -107,10 +107,11 @@ rule read lex = parse
 
   | eof { Eof }
 
-  | _ { 
-    Fmt.failwith "%a: invalid input: %S"
+  | _ {
+    let err = Format.asprintf "%a: invalid input: %S"
       pp_loc (loc lex)
-      (Lexing.lexeme lexbuf)
+      (Lexing.lexeme lexbuf) in
+    failwith err
   }
 
 
@@ -146,8 +147,9 @@ and read_string is_template lex = parse
     read_string is_template lex lexbuf
   }
   | "\\" _ as x {
-    Fmt.failwith "%a: invalid escape sequence %S, must be one of:  \\ \" \n \\$"
-      pp_loc (loc lex) x
+    let err = Format.asprintf "%a: invalid escape sequence %S, must be one of:  \\ \" \n \\$"
+      pp_loc (loc lex) x in
+    failwith err
   }
   | "${" {
     let str = flush_buffer lex.strbuf in
@@ -168,9 +170,10 @@ and read_string is_template lex = parse
     read_string is_template lex lexbuf
   }
   | eof {
-    Fmt.failwith "%a: unterminated %s"
+    let err = Format.asprintf "%a: unterminated %s"
       pp_loc (loc lex)
-      (if is_template then "template string" else "string literal")
+      (if is_template then "template string" else "string literal") in
+    failwith err
   }
 
 {
@@ -204,7 +207,9 @@ and read_string is_template lex = parse
     if Token.eq tok expected then next lex
     else
       if Token.eq tok Token.Eof then
-        Fmt.failwith "%a: end of input when expecting %a" pp_loc (loc lex) Token.pp expected
+        let err = Format.asprintf "%a: end of input when expecting %a" pp_loc (loc lex) Token.pp expected in
+        failwith err
       else
-        Fmt.failwith "%a: expected %a, got %a" pp_loc (loc lex) Token.pp expected Token.pp tok
+        let err = Format.asprintf "%a: expected %a, got %a" pp_loc (loc lex) Token.pp expected Token.pp tok in
+        failwith err
  }

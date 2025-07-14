@@ -10,8 +10,13 @@ and parse_prefix lex =
   | Int int -> parse_atom lex (`int int)
   | Str str -> parse_atom lex (`str str)
   | Char c -> parse_atom lex (`char c)
+  | Backtick -> parse_quote lex
   | Template_start str -> parse_template ~start:str lex
   | Sym "|" as tok -> parse_sep_start lex ~delim:tok (fun x -> `pipe x)
+  | Sym "!" ->
+    Lex.next lex;
+    let expr = parse_prefix lex in
+    `prefix ("!", expr)
   | Sym op -> parse_prefix_op lex op
   | Lparen -> parse_block lex Token.Rparen (fun x -> `parens x)
   | Lbrace -> parse_block lex Token.Rbrace (fun x -> `braces x)
@@ -33,7 +38,6 @@ and parse_infix lex ~rbp left =
     | Sym "." -> parse_sep lex ~delim:tok ~rbp (fun x -> `dot x)
     | Sym "|" -> parse_sep lex ~delim:tok ~rbp (fun x -> `pipe x)
     | Sym op -> parse_infix_op lex ~rbp op
-    (* TODO ensure tpl toks are not here *)
     | _ -> parse_seq ~rbp lex
   in
   if lbp > rbp then
@@ -44,6 +48,11 @@ and parse_infix lex ~rbp left =
 and parse_atom lex atom =
   Lex.next lex;
   atom
+
+and parse_quote lex =
+  Lex.next lex;
+  let expr = parse_prefix lex in
+  `quote expr
 
 and parse_template ~start lex0 =
   let lex = { lex0 with Lex.in_template = true } in
@@ -97,8 +106,8 @@ and parse_prefix_op lex op =
   | Template_end _
   | Comma
   | Semi -> `op op
-  | _ ->
-    let expr = parse_expr lex in
+  | _tok ->
+    let expr = parse_expr ~rbp:(Precedence.juxt - 1) lex in
     `prefix (op, expr)
 
 and parse_infix_op lex op ~rbp left =
@@ -179,3 +188,5 @@ let parse lex =
 module Lex = Lex
 
 let pp = Expr.pp
+
+type t = Expr.t

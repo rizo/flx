@@ -1,3 +1,5 @@
+open Prelude
+
 type t =
   [ `id of string
   | `op of string
@@ -38,7 +40,7 @@ let rec pp f (t : t) =
   | `semi [] -> Fmt.pf f "(;)"
   | `semi xs -> Fmt.pf f "(; @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
   | `seq [] -> Fmt.pf f "()"
-  | `quote x -> Fmt.pf f "`(%a)" pp x
+  | `quote x -> Fmt.pf f "(`%a)" pp x
   | `seq xs -> Fmt.pf f "(_ @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
   | `template [] -> Fmt.pf f "($)"
   | `template xs -> Fmt.pf f "($ @[<hv2>%a@])" (Fmt.list ~sep:Fmt.sp pp) xs

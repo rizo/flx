@@ -1,0 +1,42 @@
+// Value binding
+val vb_1 = 1;
+val vb_1 : int = 1;
+
+// Value binding list
+val {
+  vbl_1 = 1,
+  vbl_2 : bool = 2
+};
+
+a;
+42;
+
+// Type declaration
+type t1;
+type t2[A, B];
+type t2[A];
+
+//val hello name = "Hello, ${name}!";
+
+
+//let x <- Result.bind (Ok 2),
+//Ok (x + 1)
+
+
+//let val_2 = 1, let x = 2;
+
+
+//let val_3 = 1, a = 2, b = c;
+
+//rec val_4 = 1;
+//rec val_4 = 1, a = 1;
+
+//let a = (42 + 10 - 2) / 2;
+
+//let () = ();
+//let () = a;
+
+
+//let x = 1,
+//let y = 2,
+//x + y + 1;

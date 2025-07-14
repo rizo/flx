@@ -10,5 +10,7 @@ let () =
       print_usage ();
       exit 1
   in
-  let flx = Flx.parse lex in
-  Format.printf "%a@." Flx.pp flx
+  try
+    let flx = Flx.parse lex in
+    Format.printf "%a@." Flx.pp flx
+  with Failure msg -> Format.printf "error: %s@." msg
