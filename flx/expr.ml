@@ -33,12 +33,12 @@ let rec pp f (t : t) =
   | `prefix (fix, x) -> Fmt.pf f "@[<hv2>(%s_@ %a)@]" fix pp x
   | `infix (fix, x, y) -> Fmt.pf f "@[<hv2>(_%s_@ %a@ %a)@]" fix pp x pp y
   | `postfix (fix, x) -> Fmt.pf f "@[<hv2>(_%s@ %a)@]" fix pp x
-  | `comma [] -> Fmt.pf f "(,)"
-  | `comma xs -> Fmt.pf f "(, @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
   | `dot xs -> Fmt.pf f "(. @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
   | `pipe xs -> Fmt.pf f "(| @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
   | `semi [] -> Fmt.pf f "(;)"
-  | `semi xs -> Fmt.pf f "(; @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
+  | `semi xs -> Fmt.pf f "@[<hv2>(;@ %a@])" (Fmt.list ~sep:Fmt.sp pp) xs
+  | `comma [] -> Fmt.pf f "(,)"
+  | `comma xs -> Fmt.pf f "@[<hv2>(,@ %a@])" (Fmt.list ~sep:Fmt.sp pp) xs
   | `seq [] -> Fmt.pf f "()"
   | `quote x -> Fmt.pf f "(`%a)" pp x
   | `seq xs -> Fmt.pf f "(_ @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs

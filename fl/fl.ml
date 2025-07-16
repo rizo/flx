@@ -1,41 +1,34 @@
 open struct
   module Ast = Astlib.Ast_503
-
-  module Fmt = struct
-    let pf = Format.fprintf
-    let pr = Format.printf
-    let epr = Format.eprintf
-    let list ?sep pp l = Format.pp_print_list ?pp_sep:sep pp l
-    let sp = Format.pp_print_space
-  end
-
-  let print ?(break = Format.pp_print_newline) fmt =
-    Format.kfprintf (fun f -> break f ()) Format.std_formatter fmt
-
-  let todo () = failwith "TODO"
-
-  let wip what flx =
-    Format.eprintf "WIP: %s: %a@." what Flx.pp flx;
-    exit 42
 end
 
-(* Assert AST type *)
+open Prelude
+
+(* Assert current AST version: [Ast] must match [Ast_helper]. *)
 let _ : char -> Ast.Parsetree.constant = Ast_helper.Const.char
 
 module Ml = struct
-  type structure = Ast.Parsetree.structure
-  type pattern = Ast.Parsetree.pattern
-  type expression = Ast.Parsetree.expression
-  type structure_item = Ast.Parsetree.structure_item
-  type core_type = Ast.Parsetree.core_type
-  type value_constraint = Ast.Parsetree.value_constraint
+  type attr = Ast.Parsetree.attribute
+  type const = Ast.Parsetree.constant
+  type exp = Ast.Parsetree.expression
+  type pat = Ast.Parsetree.pattern
+  type str = Ast.Parsetree.structure_item
+  type typ = Ast.Parsetree.core_type
+  type vc = Ast.Parsetree.value_constraint
+
+  module Attr = Ast_helper.Attr
+  module Const = Ast_helper.Const
+  module Exp = Ast_helper.Exp
+  module Pat = Ast_helper.Pat
+  module Str = Ast_helper.Str
+  module Typ = Ast_helper.Typ
+  module Type = Ast_helper.Type
+  module Vb = Ast_helper.Vb
 
   module Vc = struct
-    let constr vars typ =
+    let constraint_ vars typ =
       Ast.Parsetree.Pvc_constraint { locally_abstract_univars = vars; typ }
   end
-
-  include Ast_helper
 end
 
 let loc = Location.none
@@ -43,7 +36,7 @@ let mknoloc = Location.mknoloc
 let mkloc loc x = Location.mkloc x loc
 
 module Eval_typ = struct
-  let eval (fl : Flx.t) : Ml.core_type =
+  let eval (fl : Flx.t) : Ml.typ =
     match fl with
     (* a *)
     | `id id -> Ml.Typ.constr ~loc (mkloc loc (Longident.Lident id)) []
@@ -51,15 +44,15 @@ module Eval_typ = struct
 end
 
 module Eval_vc = struct
-  let eval (fl : Flx.t) : Ml.value_constraint =
+  let eval (fl : Flx.t) : Ml.vc =
     match fl with
     | typ_fl ->
       let typ_ml = Eval_typ.eval typ_fl in
-      Ml.Vc.constr [] typ_ml
+      Ml.Vc.constraint_ [] typ_ml
 end
 
 module Eval_exp = struct
-  let eval (fl : Flx.t) : Ml.expression =
+  let eval (fl : Flx.t) : Ml.exp =
     match fl with
     | `id id -> Ml.Exp.ident ~loc (mknoloc (Longident.Lident id))
     | `int int -> Ml.Exp.constant (Ml.Const.int int)
@@ -67,7 +60,7 @@ module Eval_exp = struct
 end
 
 module Eval_pat = struct
-  let eval (fl : Flx.t) : Ml.pattern =
+  let eval (fl : Flx.t) : Ml.pat =
     match fl with
     | `id id -> Ml.Pat.var ~loc (mknoloc id)
     | `int int -> Ml.Pat.constant (Ml.Const.int int)
@@ -106,7 +99,7 @@ module Eval_stri = struct
       print ">>> %a@." Flx.pp fl;
       failwith "invalid type param"
 
-  let eval (fl : Flx.t) : Ml.structure_item =
+  let eval (fl : Flx.t) : Ml.str =
     match fl with
     (* val a = 1 *)
     | `infix ("=", `seq (`id "val" :: [ vb_pat_fl ]), vb_exp_fl) ->

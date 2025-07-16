@@ -1,4 +1,4 @@
-// Value binding
+// Structure item - value binding
 val vb_1 = 1;
 val vb_1 : int = 1;
 

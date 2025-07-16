@@ -38,6 +38,7 @@ let get (tok : Token.t) =
   | Sym "->" -> -60
   (* NOTE: ! is prefix-only *)
   (* | Sym "!" -> 60 *)
+  (* NOTE: Should be lower? *)
   | Sym ":=" -> -60
   | Sym "<-" -> -60
   | Sym ("&" | "&&") -> -70
