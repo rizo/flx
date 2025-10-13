@@ -173,6 +173,10 @@ f x1 x2;
 (f x1) x2;
 f (x=1) (y=2);
 f (x?) (y : int=2) (z?=None);
+f (x=#todo) (y=2);
+f (x = #todo) (y=2);
+f (~x: #todo) (y=2);
+f (x = #todo) (y = 2);
 
 // | Pexp_match of expression * case list
 match a { b -> 1, c -> 2, d };
@@ -192,6 +196,8 @@ try (f a + b) {
 
 // | Pexp_construct of Longident.t loc * expression option
 Some 3;
+
+Foo 2 1;
 
 // | Pexp_variant of label * expression option
 #None;
@@ -399,8 +405,7 @@ sig MT (M : MT) = {};
 // | Pmty_with of module_type * with_constraint list  (** [MT with ...] *)
 
 // | Pmty_typeof of module_expr  (** [module type of ME] *)
-sig S = sig ME;
-// sig S = sig of ME;
+sig S = sig of ME;
 
 // | Pmty_extension of extension  (** [[%id]] *)
 sig S = %ext1;
