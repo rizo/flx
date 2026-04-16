@@ -9,7 +9,7 @@
     represent right-to-left associativity, like in [a = (b = c)].
 
     Precedence value [0] has a special meaning: it denotes terminator tokens.
-    When a terminator token is encountered, the current expression stops, bigin
+    When a terminator token is encountered, the current expression stops, giving
     control to the parent parser.
 
     Juxtaposition of tokens has a very high precedence. In a way, juxtaposition
@@ -24,18 +24,20 @@
     SEE: https://ocaml.org/manual/5.3/api/Ocaml_operators.html *)
 
 let juxt = 200
+let comma = 20
+let attr = 25
 
 let get (tok : Token.t) =
   match tok with
   (* Terminators *)
   | Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _ -> 0
   | Semi -> 10
-  | Comma -> 20
+  | Comma -> comma
   | Sym "=" -> -30
   | Sym "|" -> 40
   | Sym ":" -> -50
-  | Sym "::" -> 55
-  | Sym "->" -> -60
+  | Sym "->" -> -55
+  | Sym "::" -> 60
   (* NOTE: ! is prefix-only *)
   (* | Sym "!" -> 60 *)
   (* NOTE: Should be lower? *)

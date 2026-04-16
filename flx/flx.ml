@@ -17,6 +17,7 @@ and parse_prefix lex =
     Lex.next lex;
     let expr = parse_prefix lex in
     `prefix ("!", expr)
+  | Sym "@" -> parse_attr lex
   | Sym op -> parse_prefix_op lex op
   | Lparen -> parse_block lex Token.Rparen (fun x -> `parens x)
   | Lbrace -> parse_block lex Token.Rbrace (fun x -> `braces x)
@@ -33,8 +34,8 @@ and parse_infix lex ~rbp left =
     match tok with
     | Eof | Rparen | Rbracket | Rbrace | Template_mid _ | Template_end _ ->
       fun _ -> assert false
-    | Comma -> parse_sep_end lex ~delim:tok ~rbp (fun x -> `comma x)
-    | Semi -> parse_sep_end lex ~delim:tok ~rbp (fun x -> `semi x)
+    | Comma -> parse_sep_trailing lex ~delim:tok ~rbp (fun x -> `comma x)
+    | Semi -> parse_sep_trailing lex ~delim:tok ~rbp (fun x -> `semi x)
     | Sym "." -> parse_sep lex ~delim:tok ~rbp (fun x -> `dot x)
     | Sym "|" -> parse_sep lex ~delim:tok ~rbp (fun x -> `pipe x)
     | Sym op -> parse_infix_op lex ~rbp op
@@ -53,6 +54,17 @@ and parse_quote lex =
   Lex.next lex;
   let expr = parse_prefix lex in
   `quote expr
+
+and parse_attr lex =
+  Lex.next lex;
+  let attr = parse_prefix lex in
+  let tok = Lex.peek lex in
+  let precedence = abs (Precedence.get tok) in
+  let expr =
+    if precedence <= Precedence.attr then None
+    else Some (parse_expr ~rbp:Precedence.attr lex)
+  in
+  `attr (attr, expr)
 
 and parse_template ~start lex0 =
   let lex = { lex0 with Lex.in_template = true } in
@@ -148,7 +160,7 @@ and parse_sep lex ~delim ~rbp mk left =
   let expr_list = List.rev (loop acc0) in
   mk expr_list
 
-and parse_sep_end lex ~delim ~rbp mk left =
+and parse_sep_trailing lex ~delim ~rbp mk left =
   Lex.consume lex delim;
   let rec loop acc =
     match Lex.peek lex with

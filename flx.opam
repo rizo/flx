@@ -5,6 +5,7 @@ depends: [
   "dune" {>= "3.2"}
   "ocaml"
   "fmt"
+  "ppxlib"
   "odoc" {with-doc}
 ]
 build: [

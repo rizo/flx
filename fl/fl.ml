@@ -10,11 +10,13 @@ let _ : char -> Ast.Parsetree.constant = Ast_helper.Const.char
 module Ml = struct
   type attr = Ast.Parsetree.attribute
   type const = Ast.Parsetree.constant
+  type case = Ast.Parsetree.case
   type exp = Ast.Parsetree.expression
   type pat = Ast.Parsetree.pattern
   type str = Ast.Parsetree.structure_item
   type typ = Ast.Parsetree.core_type
   type vc = Ast.Parsetree.value_constraint
+  type vb = Ast.Parsetree.value_binding
 
   module Attr = Ast_helper.Attr
   module Const = Ast_helper.Const
@@ -29,13 +31,22 @@ module Ml = struct
     let constraint_ vars typ =
       Ast.Parsetree.Pvc_constraint { locally_abstract_univars = vars; typ }
   end
+
+  module Case = struct
+    let mk ?guard:pc_guard pc_lhs pc_rhs =
+      { Ast.Parsetree.pc_lhs; pc_guard; pc_rhs }
+  end
 end
 
 let loc = Location.none
 let mknoloc = Location.mknoloc
 let mkloc loc x = Location.mkloc x loc
+let ident xs = Option.get (Longident.unflatten xs)
+let ident_noloc xs = mknoloc (Option.get (Longident.unflatten xs))
 
-module Eval_typ = struct
+module rec Eval_typ : sig
+  val eval : Flx.t -> Ml.typ
+end = struct
   let eval (fl : Flx.t) : Ml.typ =
     match fl with
     (* a *)
@@ -43,31 +54,71 @@ module Eval_typ = struct
     | _ -> wip "typ" fl
 end
 
-module Eval_vc = struct
-  let eval (fl : Flx.t) : Ml.vc =
+and Eval_vc : sig
+  val eval : Flx.t -> Ml.vc
+end = struct
+  let eval (fl : Flx.t) =
     match fl with
     | typ_fl ->
       let typ_ml = Eval_typ.eval typ_fl in
       Ml.Vc.constraint_ [] typ_ml
 end
 
-module Eval_exp = struct
-  let eval (fl : Flx.t) : Ml.exp =
+and Eval_case : sig
+  val eval : Flx.t -> Ml.case
+end = struct
+  let eval (fl : Flx.t) =
+    match fl with
+    | `infix ("->", pat, exp) ->
+      let pat_ml = Eval_pat.eval pat in
+      let exp_ml = Eval_exp.eval exp in
+      Ml.Case.mk pat_ml exp_ml
+    | _ -> wip "case" fl
+end
+
+and Eval_exp : sig
+  val eval : Flx.t -> Ml.exp
+end = struct
+  let eval (fl : Flx.t) =
     match fl with
     | `id id -> Ml.Exp.ident ~loc (mknoloc (Longident.Lident id))
-    | `int int -> Ml.Exp.constant (Ml.Const.int int)
-    | _ -> todo ()
+    | `int x -> Ml.Exp.constant (Ml.Const.int x)
+    | `str x -> Ml.Exp.constant (Ml.Const.string x)
+    | `parens (`seq []) -> Ml.Exp.construct (ident_noloc [ "()" ]) None
+    | `seq [ `id "match"; exp; `braces (`comma cases) ] ->
+      let exp_ml = Eval_exp.eval exp in
+      Ml.Exp.match_ exp_ml (List.map Eval_case.eval cases)
+    | `seq [ `id "match"; exp; `braces case ] ->
+      let exp_ml = Eval_exp.eval exp in
+      Ml.Exp.match_ exp_ml [ Eval_case.eval case ]
+    | `seq [ `id "match"; exp; _ ] -> fail "missing braces around match cases"
+    | _ -> wip "exp" fl
 end
 
-module Eval_pat = struct
-  let eval (fl : Flx.t) : Ml.pat =
+and Eval_pat : sig
+  val eval : Flx.t -> Ml.pat
+end = struct
+  let eval (fl : Flx.t) =
     match fl with
     | `id id -> Ml.Pat.var ~loc (mknoloc id)
-    | `int int -> Ml.Pat.constant (Ml.Const.int int)
-    | _ -> todo ()
+    | `int x -> Ml.Pat.constant (Ml.Const.int x)
+    | `str x -> Ml.Pat.constant (Ml.Const.string x)
+    | `parens (`seq []) -> Ml.Pat.construct (ident_noloc [ "()" ]) None
+    | `parens pat -> Eval_pat.eval pat
+    | `infix ("@", `id alias, pat_fl) ->
+      let pat_ml = Eval_pat.eval pat_fl in
+      Ml.Pat.alias pat_ml (mknoloc alias)
+    | `infix ("@", _, _) ->
+      fail "invalid pattern alias: alias must be an identifier"
+    (* | `infix ("..", `int _, pat_fl) -> *)
+    (*   let pat_ml = Eval_pat.eval pat_fl in *)
+    (*   Ml.Pat.alias pat_ml (mknoloc alias) *)
+    | _ -> wip "pat" fl
 end
 
-module Eval_vb = struct
+and Eval_vb : sig
+  val eval : Flx.t -> Ml.vb
+end = struct
   let eval (fl : Flx.t) =
     match fl with
     (* a : int = 3 *)
@@ -81,7 +132,7 @@ module Eval_vb = struct
       let pat_ml = Eval_pat.eval pat_fl in
       let exp_ml = Eval_exp.eval exp_fl in
       Ml.Vb.mk pat_ml exp_ml
-    | _ -> todo ()
+    | _ -> wip "vb" fl
 end
 
 module Eval_stri = struct
@@ -156,6 +207,7 @@ let usage () =
   exit 1
 
 let () =
+  Printexc.record_backtrace true;
   match Sys.argv with
   | [| _; file_name |] ->
     In_channel.with_open_text file_name (fun chan -> run ~file_name chan)

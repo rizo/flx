@@ -9,6 +9,7 @@ end
 let print ?(break = Format.pp_print_newline) fmt =
   Format.kfprintf (fun f -> break f ()) Format.std_formatter fmt
 
+let fail fmt = Format.kasprintf failwith fmt
 let todo () = failwith "TODO"
 
 let wip what flx =
