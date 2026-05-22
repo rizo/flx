@@ -62,6 +62,7 @@ let get (tok : Token.t) =
   (* Juxtaposition *)
   | Id _
   | Str _
+  | Comment _
   | Char _
   | Int _
   | Backtick

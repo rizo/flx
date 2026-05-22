@@ -10,6 +10,7 @@ and parse_prefix lex =
   | Int int -> parse_atom lex (`int int)
   | Str str -> parse_atom lex (`str str)
   | Char c -> parse_atom lex (`char c)
+  | Comment text -> parse_atom lex (`comment text)
   | Backtick -> parse_quote lex
   | Dollar -> parse_unquote lex
   | Template_start str -> parse_template ~start:str lex

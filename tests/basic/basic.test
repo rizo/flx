@@ -313,6 +313,18 @@ a b c)
     error: <input>: line 1: col 5: unexpected token: ')'
 
 
+# Comments
+
+// hello
+    (// " hello")
+
+a // trailing
+    (_ a (// " trailing"))
+
+{ // block
+    error: <input>: line 1: col 10: end of input when expecting '}'
+
+
 # Strings
 
 ""

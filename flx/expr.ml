@@ -6,6 +6,7 @@ type t =
   | `int of int
   | `str of string
   | `char of char
+  | `comment of string
   | `parens of t
   | `brackets of t
   | `braces of t
@@ -29,6 +30,7 @@ let rec pp f (t : t) =
   | `int x -> Fmt.pf f "%d" x
   | `str x -> Fmt.pf f "%S" x
   | `char x -> Fmt.pf f "%C" x
+  | `comment x -> Fmt.pf f "(// %S)" x
   | `parens x -> Fmt.pf f "@[<hv2>((_)@ %a@])" pp x
   | `brackets x -> Fmt.pf f "@[<hv2>([_]@ %a@])" pp x
   | `braces x -> Fmt.pf f "@[<hv2>({_}@ %a@])" pp x

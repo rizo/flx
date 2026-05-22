@@ -4,6 +4,7 @@ type t =
   | Int of int
   | Str of string
   | Char of char
+  | Comment of string
   | Backtick
   | Dollar
   | Lparen
@@ -36,6 +37,7 @@ let pp =
     | Semi -> pf f "';'"
     | Str x -> pf f "(str %S)" x
     | Char x -> pf f "(char %c)" x
+    | Comment x -> pf f "(comment %S)" x
     | Int x -> pf f "(int %d)" x
     | Sym x -> pf f "(sym '%s')" x
     | Template_start x -> pf f "(template-start %S)" x

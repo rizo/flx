@@ -65,7 +65,10 @@ rule read lex = parse
   }
 
   (* Line comment *)
-  | "//"[^'\n']* { read lex lexbuf }
+  | "//"[^'\n']* {
+    let raw = Lexing.lexeme lexbuf in
+    Token.Comment (String.sub raw 2 (String.length raw - 2))
+  }
 
   (* Symbols *)
   | '`' { Token.Backtick }
