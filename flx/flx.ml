@@ -70,29 +70,27 @@ and parse_template ~start lex0 =
   let lex = { lex0 with Lex.in_template = true } in
   Lex.next lex;
   let rec loop acc =
-    let expr = parse_expr lex in
     match Lex.peek lex with
     | Template_mid str ->
       Lex.next lex;
-      loop (`str str :: expr :: acc)
+      loop (`str str :: acc)
     | Template_end str ->
       Lex.next lex0;
-      `str str :: expr :: acc
-    | unexpected ->
-      fail "%a: invalid template syntax: %a" Lex.pp_loc (Lex.loc lex) Token.pp
-        unexpected Expr.pp expr
+      `str str :: acc
+    | _ ->
+      let expr = parse_expr lex in
+      match Lex.peek lex with
+      | Template_mid str ->
+        Lex.next lex;
+        loop (`str str :: expr :: acc)
+      | Template_end str ->
+        Lex.next lex0;
+        `str str :: expr :: acc
+      | unexpected ->
+        fail "%a: invalid template syntax: %a" Lex.pp_loc (Lex.loc lex)
+          Token.pp unexpected
   in
-  match Lex.peek lex with
-  | Template_end end_str ->
-    Lex.next lex0;
-    `template [ `str start; `str end_str ]
-  | Template_mid mid_str ->
-    Lex.next lex;
-    let tpl = List.rev (loop [ `str mid_str; `str start ]) in
-    `template tpl
-  | _ ->
-    let tpl = List.rev (loop [ `str start ]) in
-    `template tpl
+  `template (List.rev (loop [ `str start ]))
 
 and parse_seq lex ~rbp left =
   let rec loop acc =
