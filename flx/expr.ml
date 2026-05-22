@@ -45,5 +45,5 @@ let rec pp f (t : t) =
   | `attr (a, None) -> Fmt.pf f "@[(@@%a@])" pp a
   | `attr (a, Some x) -> Fmt.pf f "@[<hv2>(@@%a@ %a@])" pp a pp x
   | `seq xs -> Fmt.pf f "(_ @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
-  | `template [] -> Fmt.pf f "($)"
-  | `template xs -> Fmt.pf f "($ @[<hv2>%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
+  | `template [] -> Fmt.pf f "(\"\")"
+  | `template xs -> Fmt.pf f "(@[<hv2>%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
