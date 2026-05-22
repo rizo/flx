@@ -65,6 +65,7 @@ let get (tok : Token.t) =
   | Char _
   | Int _
   | Backtick
+  | Dollar
   | Lparen
   | Lbrace
   | Lbracket

@@ -11,6 +11,7 @@ and parse_prefix lex =
   | Str str -> parse_atom lex (`str str)
   | Char c -> parse_atom lex (`char c)
   | Backtick -> parse_quote lex
+  | Dollar -> parse_unquote lex
   | Template_start str -> parse_template ~start:str lex
   | Sym "|" as tok -> parse_sep_start lex ~delim:tok (fun x -> `pipe x)
   | Sym "!" ->
@@ -54,6 +55,11 @@ and parse_quote lex =
   Lex.next lex;
   let expr = parse_prefix lex in
   `quote expr
+
+and parse_unquote lex =
+  Lex.next lex;
+  let expr = parse_prefix lex in
+  `unquote expr
 
 and parse_attr lex =
   Lex.next lex;

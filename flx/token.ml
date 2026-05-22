@@ -5,6 +5,7 @@ type t =
   | Str of string
   | Char of char
   | Backtick
+  | Dollar
   | Lparen
   | Rparen
   | Lbrace
@@ -30,6 +31,7 @@ let pp =
     | Lbracket -> pf f "'['"
     | Rbracket -> pf f "']'"
     | Backtick -> pf f "'`'"
+    | Dollar -> pf f "'$'"
     | Comma -> pf f "','"
     | Semi -> pf f "';'"
     | Str x -> pf f "(str %S)" x

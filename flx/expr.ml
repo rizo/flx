@@ -18,6 +18,7 @@ type t =
   | `pipe of t list
   | `seq of t list
   | `quote of t
+  | `unquote of t
   | `attr of t * t option
   | `template of t list ]
 
@@ -42,6 +43,7 @@ let rec pp f (t : t) =
   | `comma xs -> Fmt.pf f "@[<hv2>(,@ %a@])" (Fmt.list ~sep:Fmt.sp pp) xs
   | `seq [] -> Fmt.pf f "()"
   | `quote x -> Fmt.pf f "(`%a)" pp x
+  | `unquote x -> Fmt.pf f "($ %a)" pp x
   | `attr (a, None) -> Fmt.pf f "@[(@@%a@])" pp a
   | `attr (a, Some x) -> Fmt.pf f "@[<hv2>(@@%a@ %a@])" pp a pp x
   | `seq xs -> Fmt.pf f "(_ @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs

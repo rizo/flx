@@ -47,7 +47,7 @@ let ident_upper = (ident_upper_char) ident_inner_char*
 let ident_lower = (ident_lower_char) ident_inner_char*
 
 let op_char =
-  ['!' '$' '%' '#' '&' '*' '+' '-' '.' '/' ':' '<' '=' '>' '?' '@' '^' '|' '~']
+  ['!' '%' '#' '&' '*' '+' '-' '.' '/' ':' '<' '=' '>' '?' '@' '^' '|' '~']
 let op = op_char+
 
 let digit = ['0'-'9']
@@ -69,6 +69,7 @@ rule read lex = parse
 
   (* Symbols *)
   | '`' { Token.Backtick }
+  | '$' { Token.Dollar }
   | ',' { Token.Comma }
   | ';' { Token.Semi }
   | '\\' { Token.Sym ("\\") }
