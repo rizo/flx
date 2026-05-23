@@ -1,12 +1,20 @@
 // constant
 // | Pconst_integer of string * char option
+1;
+2L;
 // | Pconst_char of char  (** Character such as ['c']. *)
+'c';
 // | Pconst_string of string * Location.t * string option
+"abc";
+{sql|SELECT 1;|sql};
 // | Pconst_float of string * char option
 
 // attribute
+[@private];
 
 // extension
+[%private];
+
 
 // payload
 // | PStr of structure
@@ -18,11 +26,20 @@
 // | Ptyp_any  (** [_] *)
 // | Ptyp_var of string  (** A type variable such as ['a] *)
 // | Ptyp_arrow of arg_label * core_type * core_type
+let _ : int -> string = x;
+let _ : (~n: int) -> string = x;
+let _ : (?n: int) -> string = x;
+
 // | Ptyp_tuple of (string option * core_type) list
+let _ : (int, char) = x;
+
 // | Ptyp_constr of Longident.t loc * core_type list
+let _ : list[A] = x;
+let _ : Result.t[A, Err] = x;
 
 // | Ptyp_object of object_field list * closed_flag
-
+// TODO
+let _ : {} = x;
 
 // | Ptyp_class of Longident.t loc * core_type list
 // type a = #t;
@@ -46,39 +63,41 @@
 
 // pattern
 // | Ppat_any  (** The pattern [_]. *)
-val _ = 1;
+let _ = a;
 
 // | Ppat_var of string loc  (** A variable pattern such as [x] *)
-val a = 1;
+let a = 1;
 
 // | Ppat_alias of pattern * string loc
-val (a @ ()) = ();
-match () { b @ () -> 1 };
+let (a @ ()) = ();
+let (a @ b @ ()) = ();
+match () { a @ () -> 1 };
 
 // | Ppat_constant of constant
-val 1 = a;
-val "abc" = a;
+let 2 = a;
+let "abc" = a;
 
 // | Ppat_interval of constant * constant
-val ('a'..'z') = a;
+let ('a'..'z') = a;
 match a { 'a'..'z' -> 1 };
 
 // | Ppat_tuple of (string option * pattern) list * Asttypes.closed_flag
-val (a, b, c) = (1, 2, 3);
+// TODO: closed?
+let (a, b, c) = (1, 2, 3);
 
 // | Ppat_construct of Longident.t loc * (string loc list * pattern) option
 match a {
   A -> 1,
-  B x -> 1,
-  C (type A B) x -> 1,
-  () -> 1,
-  type A B :: C x -> 2,
+  B[x] -> 2,
+  C (type A B) x -> 2,
+  // TODO: "::" > "->"
+  // type A B :: C x -> 2,
 };
 
 // | Ppat_variant of label * pattern option
 match a {
   #A -> 1,
-  #B x -> 2,
+  #B[x] -> 2,
 };
 
 // | Ppat_record of (Longident.t loc * pattern) list * closed_flag
@@ -121,7 +140,7 @@ match a {
 
 // | Ppat_open of Longident.t loc * pattern  (** Pattern [M.(P)] *)
 match a {
-  Stdlib.Either.(Left a) -> 1
+  Stdlib.Either.(Left[a]) -> 1
 };
 
 // expression
@@ -151,7 +170,7 @@ let {
 },
 x + 1 - y;
 
-val map l0 f =
+let map l0 f =
   let rec loop xs acc =
     match acc {
       [] -> List.rev acc,
@@ -201,9 +220,9 @@ try (f a + b) {
 (a, b, c);
 
 // | Pexp_construct of Longident.t loc * expression option
-Some 3;
+Some[3];
 
-Foo 2 1;
+Foo[2, 1];
 
 // | Pexp_variant of label * expression option
 #None;
@@ -537,20 +556,20 @@ id;
 // [@attr1 a, @attr2 x] 43;
 
 // | Pstr_value of rec_flag * value_binding list
-val vb_1 = 1;
-val vb_1 : int = 1;
-// val vb_1 =* 1;
+let vb_1 = 1;
+let vb_1 : int = 1;
+// let vb_1 =* 1;
 // rec vb_1 = 1;
-// val rec vb_1 = 1;
-val {
+// let rec vb_1 = 1;
+let {
   vbl_1 = 1,
   vbl_2 : bool = 2
 };
 
-val vbl_1 = 1,
+let vbl_1 = 1,
 and vbl_2 : bool = 2;
 
-// val rec {
+// let rec {
 //   vbl_1 = 1,
 //   vbl_2 : bool = 2
 // };
