@@ -9,7 +9,7 @@
     represent right-to-left associativity, like in [a = (b = c)].
 
     Precedence value [0] has a special meaning: it denotes terminator tokens.
-    When a terminator token is encountered, the current expression stops, bigin
+    When a terminator token is encountered, the current expression stops, giving
     control to the parent parser.
 
     Juxtaposition of tokens has a very high precedence. In a way, juxtaposition
