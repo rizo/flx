@@ -65,9 +65,12 @@ rule read lex = parse
   }
 
   (* Line comment *)
-  | "//"[^'\n']* {
-    let raw = Lexing.lexeme lexbuf in
-    Token.Comment (String.sub raw 2 (String.length raw - 2))
+  | "//"[^'\n']* { read lex lexbuf }
+
+  (* Block comment *)
+  | "/*" {
+    Buffer.reset lex.strbuf;
+    read_comment lex lexbuf
   }
 
   (* Symbols *)
@@ -115,6 +118,31 @@ rule read lex = parse
     let err = Format.asprintf "%a: invalid input: %S"
       pp_loc (loc lex)
       (Lexing.lexeme lexbuf) in
+    failwith err
+  }
+
+
+and read_comment lex = parse
+  | "*/" {
+    Token.Comment (flush_buffer lex.strbuf)
+  }
+  | '\n' | '\r' as c {
+    Buffer.add_char lex.strbuf c;
+    update_loc lexbuf None 1 false 0;
+    read_comment lex lexbuf
+  }
+  | '*' {
+    Buffer.add_char lex.strbuf '*';
+    read_comment lex lexbuf
+  }
+  | [^ '*' '\n' '\r']+ {
+    let len = lexbuf.lex_curr_pos - lexbuf.lex_start_pos in
+    Buffer.add_subbytes lex.strbuf lexbuf.lex_buffer lexbuf.lex_start_pos len;
+    read_comment lex lexbuf
+  }
+  | eof {
+    let err = Format.asprintf "%a: unterminated block comment"
+      pp_loc (loc lex) in
     failwith err
   }
 

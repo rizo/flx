@@ -315,14 +315,20 @@ a b c)
 
 # Comments
 
-// hello
-    (// " hello")
+/*hello*/
+    (// "hello")
 
-a // trailing
-    (_ a (// " trailing"))
+a // ignored
+    a
 
-{ // block
-    error: <input>: line 1: col 10: end of input when expecting '}'
+a /* trailing */
+    (_ a (// " trailing "))
+
+{ /* block */ }
+    ({_} (// " block "))
+
+2 + /* hello */ 1
+    (_+_ 2 (_ (// " hello ") 1))
 
 
 # Strings
