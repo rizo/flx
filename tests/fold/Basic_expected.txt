@@ -1,0 +1,543 @@
+[
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_ident "a" (_none_[0,0+-1]..[0,0+-1]) ghost
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_ident "X.a" (_none_[0,0+-1]..[0,0+-1]) ghost
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_ident "X1.X2.a" (_none_[0,0+-1]..[0,0+-1]) ghost
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_constant
+      constant (_none_[0,0+-1]..[0,0+-1]) ghost
+        PConst_int (1,None)
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_constant
+      constant (_none_[0,0+-1]..[0,0+-1]) ghost
+        PConst_char 78
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_constant
+      constant (_none_[0,0+-1]..[0,0+-1]) ghost
+        PConst_string("hello",(_none_[0,0+-1]..[0,0+-1]) ghost,None)
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_let Nonrec
+      [
+        <def>
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_var "a" (_none_[0,0+-1]..[0,0+-1]) ghost
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (1,None)
+      ]
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_apply
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_ident "+" (_none_[0,0+-1]..[0,0+-1]) ghost
+        [
+          <arg>
+          Nolabel
+            expression (_none_[0,0+-1]..[0,0+-1]) ghost
+              Pexp_ident "a" (_none_[0,0+-1]..[0,0+-1]) ghost
+          <arg>
+          Nolabel
+            expression (_none_[0,0+-1]..[0,0+-1]) ghost
+              Pexp_constant
+              constant (_none_[0,0+-1]..[0,0+-1]) ghost
+                PConst_int (1,None)
+        ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_function
+      [
+        Pparam_val (_none_[0,0+-1]..[0,0+-1]) ghost
+          Nolabel
+          None
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_var "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+      ]
+      None
+      Pfunction_body
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_ident "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_function
+      [
+        Pparam_val (_none_[0,0+-1]..[0,0+-1]) ghost
+          Nolabel
+          None
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_var "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pparam_val (_none_[0,0+-1]..[0,0+-1]) ghost
+          Nolabel
+          None
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_var "y" (_none_[0,0+-1]..[0,0+-1]) ghost
+      ]
+      None
+      Pfunction_body
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_apply
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "+" (_none_[0,0+-1]..[0,0+-1]) ghost
+          [
+            <arg>
+            Nolabel
+              expression (_none_[0,0+-1]..[0,0+-1]) ghost
+                Pexp_ident "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+            <arg>
+            Nolabel
+              expression (_none_[0,0+-1]..[0,0+-1]) ghost
+                Pexp_ident "y" (_none_[0,0+-1]..[0,0+-1]) ghost
+          ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_apply
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "f" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <arg>
+        Nolabel
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_apply
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "f" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <arg>
+        Nolabel
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "x1" (_none_[0,0+-1]..[0,0+-1]) ghost
+        <arg>
+        Nolabel
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "x2" (_none_[0,0+-1]..[0,0+-1]) ghost
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_apply
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "f" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <arg>
+        Labelled "x1"
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "x1" (_none_[0,0+-1]..[0,0+-1]) ghost
+        <arg>
+        Nolabel
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "x2" (_none_[0,0+-1]..[0,0+-1]) ghost
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_apply
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "f" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <arg>
+        Labelled "x1"
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "x1" (_none_[0,0+-1]..[0,0+-1]) ghost
+        <arg>
+        Labelled "x2"
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "x2" (_none_[0,0+-1]..[0,0+-1]) ghost
+        <arg>
+        Nolabel
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_construct "()" (_none_[0,0+-1]..[0,0+-1]) ghost
+            None
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_apply
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "~-" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <arg>
+        Nolabel
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (1,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_apply
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "+" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <arg>
+        Nolabel
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "a" (_none_[0,0+-1]..[0,0+-1]) ghost
+        <arg>
+        Nolabel
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (2,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_apply
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "+" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <arg>
+        Nolabel
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "a" (_none_[0,0+-1]..[0,0+-1]) ghost
+        <arg>
+        Nolabel
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_apply
+            expression (_none_[0,0+-1]..[0,0+-1]) ghost
+              Pexp_ident "~-" (_none_[0,0+-1]..[0,0+-1]) ghost
+            [
+              <arg>
+              Nolabel
+                expression (_none_[0,0+-1]..[0,0+-1]) ghost
+                  Pexp_constant
+                  constant (_none_[0,0+-1]..[0,0+-1]) ghost
+                    PConst_int (2,None)
+            ]
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_match
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "e" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <case>
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_var "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_ident "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_match
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "e" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <case>
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (1,None)
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (0,None)
+        <case>
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_var "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (1,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_match
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "e" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <case>
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (1,None)
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (0,None)
+        <case>
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_alias "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+            pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+              Ppat_constant
+              constant (_none_[0,0+-1]..[0,0+-1]) ghost
+                PConst_int (2,None)
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (1,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_match
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_ident "e" (_none_[0,0+-1]..[0,0+-1]) ghost
+      [
+        <case>
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_or
+            pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+              Ppat_constant
+              constant (_none_[0,0+-1]..[0,0+-1]) ghost
+                PConst_int (1,None)
+            pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+              Ppat_constant
+              constant (_none_[0,0+-1]..[0,0+-1]) ghost
+                PConst_int (2,None)
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (0,None)
+        <case>
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_var "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (1,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_match
+      expression (_none_[0,0+-1]..[0,0+-1]) ghost
+        Pexp_apply
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_ident "+" (_none_[0,0+-1]..[0,0+-1]) ghost
+        [
+          <arg>
+          Nolabel
+            expression (_none_[0,0+-1]..[0,0+-1]) ghost
+              Pexp_constant
+              constant (_none_[0,0+-1]..[0,0+-1]) ghost
+                PConst_int (1,None)
+          <arg>
+          Nolabel
+            expression (_none_[0,0+-1]..[0,0+-1]) ghost
+              Pexp_ident "a" (_none_[0,0+-1]..[0,0+-1]) ghost
+        ]
+      [
+        <case>
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_or
+            pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+              Ppat_constant
+              constant (_none_[0,0+-1]..[0,0+-1]) ghost
+                PConst_int (1,None)
+            pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+              Ppat_constant
+              constant (_none_[0,0+-1]..[0,0+-1]) ghost
+                PConst_int (2,None)
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (0,None)
+        <case>
+          pattern (_none_[0,0+-1]..[0,0+-1]) ghost
+            Ppat_var "x" (_none_[0,0+-1]..[0,0+-1]) ghost
+          expression (_none_[0,0+-1]..[0,0+-1]) ghost
+            Pexp_constant
+            constant (_none_[0,0+-1]..[0,0+-1]) ghost
+              PConst_int (1,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_tuple
+      [
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (1,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (2,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_tuple
+      [
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_ident "a" (_none_[0,0+-1]..[0,0+-1]) ghost
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_ident "b" (_none_[0,0+-1]..[0,0+-1]) ghost
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (3,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_tuple
+      [
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (1,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (2,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (3,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (4,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (5,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (6,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (7,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (8,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (9,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (10,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_tuple
+      [
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (1,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (2,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_tuple
+          [
+            expression (_none_[0,0+-1]..[0,0+-1]) ghost
+              Pexp_ident "a" (_none_[0,0+-1]..[0,0+-1]) ghost
+            expression (_none_[0,0+-1]..[0,0+-1]) ghost
+              Pexp_ident "b" (_none_[0,0+-1]..[0,0+-1]) ghost
+          ]
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_construct "[]" (_none_[0,0+-1]..[0,0+-1]) ghost
+      None
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_construct "true" (_none_[0,0+-1]..[0,0+-1]) ghost
+      None
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_construct "false" (_none_[0,0+-1]..[0,0+-1]) ghost
+      None
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_array
+      []
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_array
+      [
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (1,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_array
+      [
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (1,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (2,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (3,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_array
+      [
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (1,None)
+      ]
+  structure_item (_none_[0,0+-1]..[0,0+-1]) ghost
+    Pstr_eval
+    expression (_none_[0,0+-1]..[0,0+-1]) ghost
+      Pexp_array
+      [
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (1,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (2,None)
+        expression (_none_[0,0+-1]..[0,0+-1]) ghost
+          Pexp_constant
+          constant (_none_[0,0+-1]..[0,0+-1]) ghost
+            PConst_int (3,None)
+      ]
+]
+

@@ -573,6 +573,10 @@ let 1 : int = x;
 
 // or pattern
 let A or B = x;
+let (A | B) = x;
+
+// condition
+let a ? a > 1 = x;
 
 // Arrays
 // let x = {a};

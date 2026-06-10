@@ -19,6 +19,10 @@ and parse_prefix lex =
     Lex.next lex;
     let expr = parse_prefix lex in
     `prefix ("!", expr)
+  | Sym "~" ->
+    Lex.next lex;
+    let expr = parse_prefix lex in
+    `prefix ("~", expr)
   | Sym "@" -> parse_attr lex
   | Sym op -> parse_prefix_op lex op
   | Lparen -> parse_block lex Token.Rparen (fun x -> `parens x)
@@ -40,6 +44,7 @@ and parse_infix lex ~rbp left =
     | Semi -> parse_sep_trailing lex ~delim:tok ~rbp (fun x -> `semi x)
     | Sym "." -> parse_sep lex ~delim:tok ~rbp (fun x -> `dot x)
     | Sym "|" -> parse_sep lex ~delim:tok ~rbp (fun x -> `pipe x)
+    | Sym "~" -> parse_seq ~rbp lex
     | Sym op -> parse_infix_op lex ~rbp op
     | _ -> parse_seq ~rbp lex
   in
@@ -84,7 +89,7 @@ and parse_template ~start lex0 =
     | Template_end str ->
       Lex.next lex0;
       `str str :: acc
-    | _ ->
+    | _ -> (
       let expr = parse_expr lex in
       match Lex.peek lex with
       | Template_mid str ->
@@ -94,8 +99,9 @@ and parse_template ~start lex0 =
         Lex.next lex0;
         `str str :: expr :: acc
       | unexpected ->
-        fail "%a: invalid template syntax: %a" Lex.pp_loc (Lex.loc lex)
-          Token.pp unexpected
+        fail "%a: invalid template syntax: %a" Lex.pp_loc (Lex.loc lex) Token.pp
+          unexpected
+    )
   in
   `template (List.rev (loop [ `str start ]))
 
@@ -147,7 +153,7 @@ and parse_sep_start lex ~delim mk =
   let precedence = Precedence.get delim in
   let lbp = abs precedence in
   let rbp = if precedence < 0 then lbp - 1 else lbp in
-  let left = parse_prefix lex in
+  let left = parse_expr ~rbp lex in
   parse_sep lex ~delim ~rbp mk left
 
 and parse_sep lex ~delim ~rbp mk left =

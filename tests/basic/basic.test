@@ -84,7 +84,7 @@ a, 1; b, 2; c, 3
     ({_} .)
 
 
-# Infix operators
+# Prefix operators
 
 -a
     (-_ a)
@@ -100,6 +100,18 @@ a, 1; b, 2; c, 3
 
 - f a + -b * 1
     (_+_ (-_ (_ f a)) (_*_ (-_ b) 1))
+
+~a
+    (~_ a)
+
+a + ~b
+    (_+_ a (~_ b))
+
+f ~a ~b
+    (_ f (~_ a) (~_ b))
+
+f ~a + ~b
+    (_+_ (_ f (~_ a)) (~_ b))
 
 
 # Infix operators

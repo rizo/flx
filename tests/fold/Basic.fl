@@ -1,0 +1,105 @@
+// --- Pexp_ident ---
+a;
+X.a;
+X1.X2.a;
+
+// --- Pexp_constant ---
+1;
+// FIXME
+// 2L;
+'x';
+"hello";
+// FIXME
+// 3.14;
+
+// --- Pexp_let ---
+let a = 1, a + 1;
+//{let a = 1; a + 1};
+
+// --- Pexp_function ---
+fn x -> x;
+fn x y -> x + y;
+// TODO
+// fn { x -> x };
+
+// --- Pexp_apply ---
+f x;
+f x1 x2;
+f ~x1 x2;
+f ~x1 ~x2 ();
+-1;
+a + 2;
+a + -2;
+
+// --- Pexp_match ---
+match e { x -> x };
+match e { 1 -> 0, x -> 1 };
+match e { 1 -> 0, x @ 2 -> 1 };
+match e { (1 | 2) -> 0, x -> 1 };
+match (1 + a) { (1 | 2) -> 0, x -> 1 };
+
+// TODO: Expected error
+// match (1 + a) { (1 | 2) -> 0, x -> 1 } 1;
+
+// TODO: Review
+// match e { 1 | 2 -> 0, x -> 1 };
+
+// TODO: Expected error
+// match e { 1 };
+
+// TODO: Expected error
+// match e { };
+
+// TODO: Expected error
+// match e { };
+
+// --- Pexp_try ---
+
+// --- Pexp_tuple ---
+(1, 2);
+(a, b, 3);
+(1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
+(1, 2, (a, b));
+
+// --- Pexp_construct ---
+[];
+True;
+False;
+
+// --- Pexp_variant ---
+// --- Pexp_record ---
+// --- Pexp_field ---
+// --- Pexp_setfield ---
+// --- Pexp_array ---
+{};
+{1};
+{1, 2, 3};
+
+// --- Pexp_ifthenelse ---
+// TODO
+// if (a > 0) { "yes" } else { "no" };
+
+// --- Pexp_sequence  ---
+// TODO
+// {;};
+{1;};
+{1; 2; 3};
+
+// --- Pexp_while  ---
+// --- Pexp_for  ---
+// --- Pexp_constraint  ---
+// --- Pexp_coerce  ---
+// --- Pexp_send  ---
+// --- Pexp_new  ---
+// --- Pexp_setinstvar  ---
+// --- Pexp_override  ---
+// --- Pexp_struct_item  ---
+// --- Pexp_assert  ---
+// --- Pexp_lazy  ---
+// --- Pexp_poly  ---
+// --- Pexp_object  ---
+// --- Pexp_newtype  ---
+// --- Pexp_pack  ---
+// --- Pexp_letop  ---
+// --- Pexp_extension  ---
+// --- Pexp_unreachable ---

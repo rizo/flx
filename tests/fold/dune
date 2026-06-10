@@ -1,0 +1,25 @@
+(rule
+ (deps Basic.fl)
+ (action
+  (with-stdout-to
+   Basic_actual.ml
+   (run %{bin:fl} %{deps}))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff Basic_expected.txt Basic_actual.ml)))
+
+; (rule
+;  (deps Either.fl)
+;  (action
+;   (with-stdout-to
+;    Either_actual.ml
+;    (pipe-stdout
+;     (run %{bin:fl} %{deps})
+;     (run %{bin:ocamlformat} --impl -)))))
+;
+; (rule
+;  (alias runtest)
+;  (action
+;   (diff Either_expected.ml Either_actual.ml)))
