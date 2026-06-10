@@ -416,8 +416,8 @@ let run ?file_name chan =
   let lex = Flx.Lex.read_channel ?file_name chan in
   let fl = Flx.parse lex in
   let str_ml = E_structure.eval fl in
-  (* print "%a" Pprintast.structure str_ml *)
-  print "%a" Printast.implementation str_ml
+  print "%a" Pprintast.structure str_ml
+(* print "%a" Printast.implementation str_ml *)
 
 let usage () =
   prerr_endline "usage: fl [input]";

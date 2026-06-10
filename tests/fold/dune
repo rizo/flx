@@ -8,7 +8,7 @@
 (rule
  (alias runtest)
  (action
-  (diff Basic_expected.txt Basic_actual.ml)))
+  (diff Basic_expected.ml Basic_actual.ml)))
 
 ; (rule
 ;  (deps Either.fl)
