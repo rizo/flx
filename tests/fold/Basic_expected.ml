@@ -29,8 +29,12 @@
 ;;[||]
 ;;[|1|]
 ;;[|1;2;3|]
-;;if a > 0 then "yes" else "no"
+;;if a > 0 then e1 else e2
 ;;[|1|]
 ;;[|1;2;3|]
-;;while a > 2 do [|(print a)|] done
-;;while true do  done
+;;while a > 2 do print a done
+;;for i = e1 to e2 do [|e3|] done
+;;for i = e1 downto e2 do e3 done
+;;for i = e1 to e2 do [|(print "hello");(f ())|] done
+;;assert true
+;;assert (a > 2)

@@ -198,6 +198,53 @@ end = struct
         (Ml.Fun.cases (List.map Eval_case.eval cases))
     (* | `infix ("->", `seq (`id "fn" :: args), body) -> *)
     (*   Eval_fun.exp (List.map (fun arg -> Positional arg) args) body *)
+
+    (* --- Pexp_ifthenelse --- *)
+    (* if e1 { e2 } else { e3 } *)
+    | `seq [ `id "if"; e1_fl; `braces e2_fl; `id "else"; `braces e3_fl ] ->
+      let e1_ml = E_expression.eval e1_fl in
+      let e2_ml = E_expression.eval e2_fl in
+      let e3_ml = E_expression.eval e3_fl in
+      Ml.Exp.ifthenelse ~loc e1_ml e2_ml (Some e3_ml)
+    | `seq (`id "if" :: _e1 :: _e2 :: `id "else" :: _e3 :: _extra :: _rest) ->
+      fail "invalid if syntax: did you forget a semicolon?"
+    (* --- Pexp_while --- *)
+    (* while test { body } *)
+    | `seq [ `id "while"; e1_fl; `braces e2_fl ] ->
+      let e1_ml = E_expression.eval e1_fl in
+      let e2_ml = E_expression.eval e2_fl in
+      Ml.Exp.while_ ~loc e1_ml e2_ml
+    (* --- Pexp_for --- *)
+    (* for (pat = start to stop) { body } *)
+    | `seq
+        [
+          `id "for";
+          `parens (`infix ("=", pat_fl, `seq [ start_fl; `id "to"; stop_fl ]));
+          body_fl;
+        ] ->
+      let pat_ml = E_pattern.eval pat_fl in
+      let start_ml = E_expression.eval start_fl in
+      let stop_ml = E_expression.eval stop_fl in
+      let body_ml = E_expression.eval body_fl in
+      Ml.Exp.for_ ~loc pat_ml start_ml stop_ml Asttypes.Upto body_ml
+    (* for (pat = start downto stop) { body } *)
+    | `seq
+        [
+          `id "for";
+          `parens
+            (`infix ("=", pat_fl, `seq [ start_fl; `id "downto"; stop_fl ]));
+          `braces body_fl;
+        ] ->
+      let pat_ml = E_pattern.eval pat_fl in
+      let start_ml = E_expression.eval start_fl in
+      let stop_ml = E_expression.eval stop_fl in
+      let body_ml = E_expression.eval body_fl in
+      Ml.Exp.for_ ~loc pat_ml start_ml stop_ml Asttypes.Downto body_ml
+    (* --- Pexp_assert --- *)
+    (* assert exp *)
+    | `seq [ `id "assert"; exp_fl ] ->
+      let exp_ml = E_expression.eval exp_fl in
+      Ml.Exp.assert_ ~loc exp_ml
     | `seq (f_fl :: args_fl) ->
       let f_ml = E_expression.eval f_fl in
       let args_ml = List.map eval_apply_argument args_fl in

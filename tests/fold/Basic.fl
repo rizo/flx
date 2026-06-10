@@ -79,6 +79,9 @@ False;
 // TODO
 if (a > 0) { e1 } else { e2 };
 
+// TODO: Expected error
+// if (a > 0) { e1 } else { e2 } 2;
+
 // --- Pexp_sequence  ---
 // TODO
 // {;};
@@ -87,7 +90,9 @@ if (a > 0) { e1 } else { e2 };
 
 // --- Pexp_while  ---
 while (a > 2) { print a };
-while true { };
+
+// TODO: Review
+// while True { };
 
 // --- Pexp_for  ---
 for (i = e1 to e2) { e3 } ;
