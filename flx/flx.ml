@@ -14,17 +14,10 @@ and parse_prefix lex =
   | Backtick -> parse_quote lex
   | Dollar -> parse_unquote lex
   | Template_start str -> parse_template ~start:str lex
-  | Sym "|" as tok -> parse_sep_start lex ~delim:tok (fun x -> `pipe x)
-  | Sym "!" ->
-    Lex.next lex;
-    let expr = parse_prefix lex in
-    `prefix ("!", expr)
-  | Sym "~" ->
-    Lex.next lex;
-    let expr = parse_prefix lex in
-    `prefix ("~", expr)
   | Sym "@" -> parse_attr lex
-  | Sym op -> parse_prefix_op lex op
+  | Sym "|" as tok -> parse_sep_start lex ~delim:tok (fun x -> `pipe x)
+  | Sym (("~" | "!" | "#") as op) -> parse_prefix_op ~rbp:Precedence.juxt lex op
+  | Sym op -> parse_prefix_op ~rbp:(Precedence.juxt - 1) lex op
   | Lparen -> parse_block lex Token.Rparen (fun x -> `parens x)
   | Lbrace -> parse_block lex Token.Rbrace (fun x -> `braces x)
   | Lbracket -> parse_block lex Token.Rbracket (fun x -> `brackets x)
@@ -45,10 +38,11 @@ and parse_infix lex ~rbp left =
     | Sym "." -> parse_sep lex ~delim:tok ~rbp (fun x -> `dot x)
     | Sym "|" -> parse_sep lex ~delim:tok ~rbp (fun x -> `pipe x)
     | Sym "~" -> parse_seq ~rbp lex
+    | Sym "#" -> parse_seq ~rbp lex
     | Sym op -> parse_infix_op lex ~rbp op
     | _ -> parse_seq ~rbp lex
   in
-  if lbp > rbp then
+  if rbp < lbp then
     let left' = parse left in
     parse_infix lex ~rbp left'
   else left
@@ -118,7 +112,7 @@ and parse_seq lex ~rbp left =
   let expr_list = List.rev (loop acc0) in
   `seq expr_list
 
-and parse_prefix_op lex op =
+and parse_prefix_op ~rbp lex op =
   Lex.next lex;
   match Lex.peek lex with
   | Eof
@@ -130,7 +124,7 @@ and parse_prefix_op lex op =
   | Comma
   | Semi -> `op op
   | _tok ->
-    let expr = parse_expr ~rbp:(Precedence.juxt - 1) lex in
+    let expr = parse_expr ~rbp lex in
     `prefix (op, expr)
 
 and parse_infix_op lex op ~rbp left =

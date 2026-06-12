@@ -1,12 +1,16 @@
 open struct
-  module Parsetree = Astlib.Ast_503.Parsetree
-  module Asttypes = Astlib.Ast_503.Asttypes
+  let longident_unflatten = Longident.unflatten
+
+  module Current_ast = Astlib.Ast_503
+  module Parsetree = Current_ast.Parsetree
+  module Asttypes = Current_ast.Asttypes
+  module Longident = Current_ast.Longident
 end
 
-open Prelude
-
 (* Assert current AST version: [Ast] must match [Ast_helper]. *)
-let _ : char -> Parsetree.constant = Ast_helper.Const.char
+let _ : char -> Current_ast.Parsetree.constant = Ast_helper.Const.char
+
+open Prelude
 
 module Ml = struct
   module Attr = Ast_helper.Attr
@@ -41,8 +45,8 @@ module Ml = struct
 
   let mknoloc = Location.mknoloc
   let mkloc loc x = Location.mkloc x loc
-  let ident_noloc xs = mknoloc (Option.get (Longident.unflatten xs))
-  let ident ~loc xs = mkloc loc (Option.get (Longident.unflatten xs))
+  let ident_noloc xs = mknoloc (Option.get (longident_unflatten xs))
+  let ident ~loc xs = mkloc loc (Option.get (longident_unflatten xs))
 end
 
 (* FIXME: Delete this placeholder. *)
@@ -129,6 +133,15 @@ end = struct
     (* a *)
     | arg_fl -> (Asttypes.Nolabel, E_expression.eval arg_fl)
 
+  (* TODO: Handle field name casing. *)
+  let eval_record_field fl =
+    match fl with
+    | `infix ("=", `id id_str, e_fl) ->
+      let id_ml = Ml.ident ~loc [ id_str ] in
+      let e_ml = E_expression.eval e_fl in
+      (id_ml, e_ml)
+    | _ -> fail "invalid record field: %a" Flx.pp fl
+
   let eval (fl : Flx.t) =
     match fl with
     (* [] *)
@@ -172,6 +185,13 @@ end = struct
       in
       let body = E_expression.eval body_fl in
       Ml.Exp.let_ Nonrecursive [ vb ] body
+    (* --- Pexp_lazy --- *)
+    | `seq [ `id "lazy"; e1 ] ->
+      let e1_ml = E_expression.eval e1 in
+      Ml.Exp.lazy_ e1_ml
+    (* --- Pexp_lazy --- *)
+    | `seq (`id "lazy" :: _e1 :: _extra) ->
+      fail "lazy requires a single expression"
     (* --- Pexp_match --- *)
     (* match e1 { cases..., } *)
     | `seq [ `id "match"; e1; `braces (`comma cases) ] ->
@@ -240,6 +260,11 @@ end = struct
       let stop_ml = E_expression.eval stop_fl in
       let body_ml = E_expression.eval body_fl in
       Ml.Exp.for_ ~loc pat_ml start_ml stop_ml Asttypes.Downto body_ml
+    (* --- Pexp_variant --- *)
+    | `prefix ("#", `id id_str) -> Ml.Exp.variant ~loc id_str None
+    | `seq [ `prefix ("#", `id id_str); e1_fl ] ->
+      let e1_ml = E_expression.eval e1_fl in
+      Ml.Exp.variant ~loc id_str (Some e1_ml)
     (* --- Pexp_assert --- *)
     (* assert exp *)
     | `seq [ `id "assert"; exp_fl ] ->
@@ -269,6 +294,20 @@ end = struct
     | `braces (`semi items_fl) ->
       let items_ml = List.map E_expression.eval items_fl in
       Ml.Exp.array items_ml
+    (* --- Pexp_record --- *)
+    (* { ..r, x = 1, ... } *)
+    | `braces (`comma (`prefix ("..", record_fl) :: (_ as record_fields_fl))) ->
+      let record_ml = E_expression.eval record_fl in
+      let fields_ml = List.map eval_record_field record_fields_fl in
+      Ml.Exp.record fields_ml (Some record_ml)
+    (* { x = 1, ... } *)
+    | `braces (`comma (`infix ("=", _, _) :: _ as record_fields_fl)) ->
+      let fields_ml = List.map eval_record_field record_fields_fl in
+      Ml.Exp.record fields_ml None
+    (* { x = 1 } *)
+    | `braces (`infix ("=", _, _) as single_field_fl) ->
+      let single_field_ml = eval_record_field single_field_fl in
+      Ml.Exp.record [ single_field_ml ] None
     (* --- Pexp_array --- *)
     (* {} *)
     | `braces (`seq []) -> Ml.Exp.array []
@@ -280,6 +319,8 @@ end = struct
     | `braces item_fl ->
       let item_ml = E_expression.eval item_fl in
       Ml.Exp.array [ item_ml ]
+    (* --- Pexp_unreachable --- *)
+    | `op "!" -> Ml.Exp.unreachable ~loc ()
     | _ -> wip "exp" fl
 end
 
@@ -463,8 +504,7 @@ let run ?file_name chan =
   let lex = Flx.Lex.read_channel ?file_name chan in
   let fl = Flx.parse lex in
   let str_ml = E_structure.eval fl in
-  print "%a" Pprintast.structure str_ml
-(* print "%a" Printast.implementation str_ml *)
+  print "%a" (Printsexp.structure 0) str_ml
 
 let usage () =
   prerr_endline "usage: fl [input]";

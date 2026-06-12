@@ -67,7 +67,19 @@ True;
 False;
 
 // --- Pexp_variant ---
+#Green;
+#Rgb (255, 0, 0);
+
 // --- Pexp_record ---
+{ x = 1 };
+{ x = 1, y = 2 };
+{ ..p, x = 0, z = 1 };
+{ ..p, x = 0 };
+
+// TODO: Expected error
+// { ..p };
+// ..p;
+
 // --- Pexp_field ---
 // --- Pexp_setfield ---
 // --- Pexp_array ---
@@ -115,11 +127,23 @@ for (i = e1 to e2) {
 assert true;
 assert (a > 2);
 
+
 // --- Pexp_lazy  ---
+
+lazy 1;
+
+// TODO: Expected error
+// lazy 1 2;
+
 // --- Pexp_poly  ---
 // --- Pexp_object  ---
 // --- Pexp_newtype  ---
 // --- Pexp_pack  ---
 // --- Pexp_letop  ---
 // --- Pexp_extension  ---
+
 // --- Pexp_unreachable ---
+!;
+match a { _ -> !};
+
+

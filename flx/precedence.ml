@@ -49,6 +49,7 @@ let get (tok : Token.t) =
   | Sym "." -> 300
   | Sym "!" -> juxt
   | Sym "~" -> juxt
+  | Sym "#" -> juxt
   | Sym op -> (
     match op.[0] with
     | '@' -> 100
