@@ -21,6 +21,7 @@ module Ml = struct
   module Typ = Ast_helper.Typ
   module Type = Ast_helper.Type
   module Vb = Ast_helper.Vb
+  module Cstr = Ast_helper.Cstr
 
   module Vc = struct
     let constraint_ vars typ =
@@ -43,6 +44,7 @@ module Ml = struct
       { Parsetree.pc_lhs; pc_guard; pc_rhs }
   end
 
+  let cfk_concrete override e = Parsetree.Cfk_concrete (override, e)
   let mknoloc = Location.mknoloc
   let mkloc loc x = Location.mkloc x loc
   let ident_noloc xs = mknoloc (Option.get (longident_unflatten xs))
@@ -140,6 +142,27 @@ end = struct
       let id_ml = Ml.ident ~loc [ id_str ] in
       let e_ml = E_expression.eval e_fl in
       (id_ml, e_ml)
+    | _ -> fail "invalid record field: %a" Flx.pp fl
+
+  (* TODO: Handle field name casing. *)
+  let eval_class_field fl =
+    match fl with
+    (* TODO: inherit *)
+    (* TODO: val *)
+    (* TODO: method *)
+    | `infix ("=", `id id_str, e_fl) ->
+      let id_ml = Ml.mkloc loc id_str in
+      let e_ml = E_expression.eval e_fl in
+      let field_kind =
+        Parsetree.Cfk_concrete (Asttypes.Fresh, Ml.Exp.poly e_ml None)
+      in
+      Ast_helper.Cf.method_ id_ml Asttypes.Public field_kind
+    (* TODO: private method *)
+    (* TODO: vitrual method *)
+    (* TODO: constraint *)
+    (* TODO: initializer *)
+    (* TODO: attribute *)
+    (* TODO: extension *)
     | _ -> fail "invalid record field: %a" Flx.pp fl
 
   let eval (fl : Flx.t) =
@@ -261,10 +284,20 @@ end = struct
       let body_ml = E_expression.eval body_fl in
       Ml.Exp.for_ ~loc pat_ml start_ml stop_ml Asttypes.Downto body_ml
     (* --- Pexp_variant --- *)
+    (* #A *)
     | `prefix ("#", `id id_str) -> Ml.Exp.variant ~loc id_str None
+    (* #A 1 *)
     | `seq [ `prefix ("#", `id id_str); e1_fl ] ->
       let e1_ml = E_expression.eval e1_fl in
       Ml.Exp.variant ~loc id_str (Some e1_ml)
+    (* --- Pexp_object --- *)
+    (* #{} *)
+    | `prefix ("#", `braces (`seq [])) ->
+      Ml.Exp.object_ ~loc (Ml.Cstr.mk (Ml.Pat.any ()) [])
+    (* #{ a = 1, ... } *)
+    | `prefix ("#", `braces (`comma fields_fl)) ->
+      let fields_ml = List.map eval_class_field fields_fl in
+      Ml.Exp.object_ ~loc (Ml.Cstr.mk (Ml.Pat.any ()) fields_ml)
     (* --- Pexp_assert --- *)
     (* assert exp *)
     | `seq [ `id "assert"; exp_fl ] ->
@@ -500,20 +533,74 @@ module E_structure = struct
     | item_fl -> [ E_structure_item.eval item_fl ]
 end
 
-let run ?file_name chan =
+let parse_fl ?file_name chan =
   let lex = Flx.Lex.read_channel ?file_name chan in
   let fl = Flx.parse lex in
   let str_ml = E_structure.eval fl in
-  print "%a" (Printsexp.structure 0) str_ml
+  str_ml
 
-let usage () =
-  prerr_endline "usage: fl [input]";
-  exit 1
+let parse_ml ?file_name:_ chan =
+  let lexbuf = Lexing.from_channel chan in
+  let str_ml = Parse.implementation lexbuf in
+  str_ml
+
+let write_ml = Pprintast.structure
+let write_sexp = Printsexp.structure 0
+let write_ast = Printast.structure 0
+
+let run ~input_format ~output_format ?file_name chan =
+  let parse_ast =
+    match input_format with
+    | `ml -> parse_ml
+    | `fl -> parse_fl
+    | `sexp -> failwith "TODO"
+    | `ast -> failwith "TODO"
+  in
+  let print_ast =
+    match output_format with
+    | `ml -> write_ml
+    | `fl -> failwith "TODO"
+    | `sexp -> write_sexp
+    | `ast -> write_ast
+  in
+  let str_ml = parse_ast ?file_name chan in
+  print "%a" print_ast str_ml
+
+let format_of_string = function
+  | "fl" -> Some `fl
+  | "ml" -> Some `ml
+  | "sexp" -> Some `sexp
+  | "ast" -> Some `ast
+  | _ -> None
+
+let string_of_format = function
+  | `fl -> "fl"
+  | `ml -> "ml"
+  | `sexp -> "sexp"
+  | `ast -> "ast"
+
+module Args = struct
+  let input_format = ref "fl"
+  let output_format = ref "ml"
+  let input_files = ref []
+  let anon filename = input_files := filename :: !input_files
+
+  let all =
+    [
+      ("-i", Arg.Set_string input_format, "Input format");
+      ("-o", Arg.Set_string output_format, "Output format");
+    ]
+end
 
 let () =
   Printexc.record_backtrace true;
-  match Sys.argv with
-  | [| _; file_name |] ->
-    In_channel.with_open_text file_name (fun chan -> run ~file_name chan)
-  | [| _ |] -> run stdin
-  | _ -> usage ()
+  Arg.parse Args.all Args.anon "fl [-i <input>] [-o <output>] <file>...";
+  let input_format = format_of_string !Args.input_format |> Option.get in
+  let output_format = format_of_string !Args.output_format |> Option.get in
+  match !Args.input_files with
+  | [ file_name ] ->
+    In_channel.with_open_text file_name (fun chan ->
+        run ~input_format ~output_format ~file_name chan
+    )
+  | [] -> run ~input_format ~output_format stdin
+  | _ -> failwith "too many input files"

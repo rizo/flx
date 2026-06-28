@@ -29,16 +29,9 @@ let pp_string ppf s = fprintf ppf "%S" s
 let pp_bool ppf b = fprintf ppf "%b" b
 let pp_char ppf c = fprintf ppf "%C" c
 
-let pp_position ppf pos =
-  if pos.pos_lnum <= 0 then fprintf ppf "%d" pos.pos_cnum
-  else fprintf ppf "%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol)
-
-let pp_location ppf loc =
-  fprintf ppf "@[<1>(";
-  if loc.loc_ghost then fprintf ppf "*@ ";
-  fprintf ppf "%a@ %a)@]" pp_position loc.loc_start pp_position loc.loc_end
-
-let pp_location_stack ppf stack = pp_list pp_location ppf stack
+(* let pp_position ppf pos = *)
+(*   if pos.pos_lnum <= 0 then fprintf ppf "%d" pos.pos_cnum *)
+(*   else fprintf ppf "%d:%d" pos.pos_lnum (pos.pos_cnum - pos.pos_bol) *)
 
 let rec pp_longident ppf = function
   | Longident.Lident s -> fprintf ppf "@[<1>(Lident@ %S)@]" s
@@ -47,8 +40,10 @@ let rec pp_longident ppf = function
   | Longident.Lapply (li1, li2) ->
     fprintf ppf "@[<1>(Lapply@ %a@ %a)@]" pp_longident li1 pp_longident li2
 
-let pp_loc pp ppf x =
-  fprintf ppf "@[<1>((txt@ %a)@ (loc@ %a))@]" pp x.txt pp_location x.loc
+(* let pp_loc pp ppf x = *)
+(*   fprintf ppf "@[<1>((txt@ %a)@ (loc@ %a))@]" pp x.txt pp_location x.loc *)
+
+let pp_loc pp ppf x = fprintf ppf "%a" pp x.txt
 
 let pp_string_option ppf = function
   | None -> fprintf ppf "None"
@@ -102,25 +97,20 @@ let type_variance ppf (v, i) =
   fprintf ppf "@[<1>(%a@ %a)@]" variance v injectivity i
 
 let rec constant i ppf x =
-  fprintf ppf "@[<1>((pconst_desc@ %a)@ (pconst_loc@ %a))@]" (constant_desc i)
-    x.pconst_desc pp_location x.pconst_loc
+  fprintf ppf "@[<1>((pconst_desc@ %a))@]" (constant_desc i) x.pconst_desc
 
 and constant_desc _ ppf = function
   | Pconst_integer (s, suffix) ->
     fprintf ppf "@[<1>(Pconst_integer@ %S@ %a)@]" s pp_char_option suffix
   | Pconst_char c -> fprintf ppf "@[<1>(Pconst_char@ %a)@]" pp_char c
-  | Pconst_string (s, loc, delim) ->
-    fprintf ppf "@[<1>(Pconst_string@ %S@ %a@ %a)@]" s pp_location loc
-      (pp_option pp_string) delim
+  | Pconst_string (s, _loc, delim) ->
+    fprintf ppf "@[<1>(Pconst_string@ %S@ %a)@]" s (pp_option pp_string) delim
   | Pconst_float (s, suffix) ->
     fprintf ppf "@[<1>(Pconst_float@ %S@ %a)@]" s pp_char_option suffix
 
 and core_type i ppf x =
-  fprintf ppf
-    "@[<1>((ptyp_desc@ %a)@ (ptyp_loc@ %a)@ (ptyp_loc_stack@ %a)@ \
-     (ptyp_attributes@ %a))@]"
-    (core_type_desc i) x.ptyp_desc pp_location x.ptyp_loc pp_location_stack
-    x.ptyp_loc_stack (attributes i) x.ptyp_attributes
+  fprintf ppf "@[<1>((ptyp_desc@ %a)@ (ptyp_attributes@ %a))@]"
+    (core_type_desc i) x.ptyp_desc (attributes i) x.ptyp_attributes
 
 and core_type_desc i ppf = function
   | Ptyp_any -> fprintf ppf "Ptyp_any"
@@ -163,9 +153,8 @@ and package_type i ppf (path, constraints) =
     constraints
 
 and row_field i ppf x =
-  fprintf ppf "@[<1>((prf_desc@ %a)@ (prf_loc@ %a)@ (prf_attributes@ %a))@]"
-    (row_field_desc i) x.prf_desc pp_location x.prf_loc (attributes i)
-    x.prf_attributes
+  fprintf ppf "@[<1>((prf_desc@ %a)@ (prf_attributes@ %a))@]" (row_field_desc i)
+    x.prf_desc (attributes i) x.prf_attributes
 
 and row_field_desc i ppf = function
   | Rtag (label, constant, ts) ->
@@ -174,9 +163,8 @@ and row_field_desc i ppf = function
   | Rinherit t -> fprintf ppf "@[<1>(Rinherit@ %a)@]" (core_type i) t
 
 and object_field i ppf x =
-  fprintf ppf "@[<1>((pof_desc@ %a)@ (pof_loc@ %a)@ (pof_attributes@ %a))@]"
-    (object_field_desc i) x.pof_desc pp_location x.pof_loc (attributes i)
-    x.pof_attributes
+  fprintf ppf "@[<1>((pof_desc@ %a)@ (pof_attributes@ %a))@]"
+    (object_field_desc i) x.pof_desc (attributes i) x.pof_attributes
 
 and object_field_desc i ppf = function
   | Otag (label, t) ->
@@ -184,11 +172,8 @@ and object_field_desc i ppf = function
   | Oinherit t -> fprintf ppf "@[<1>(Oinherit@ %a)@]" (core_type i) t
 
 and pattern i ppf x =
-  fprintf ppf
-    "@[<1>((ppat_desc@ %a)@ (ppat_loc@ %a)@ (ppat_loc_stack@ %a)@ \
-     (ppat_attributes@ %a))@]"
-    (pattern_desc i) x.ppat_desc pp_location x.ppat_loc pp_location_stack
-    x.ppat_loc_stack (attributes i) x.ppat_attributes
+  fprintf ppf "@[<1>((ppat_desc@ %a)@ (ppat_attributes@ %a))@]" (pattern_desc i)
+    x.ppat_desc (attributes i) x.ppat_attributes
 
 and pattern_desc i ppf = function
   | Ppat_any -> fprintf ppf "Ppat_any"
@@ -233,11 +218,8 @@ and constructor_pattern i ppf (vars, p) =
   fprintf ppf "@[<1>(%a@ %a)@]" (pp_list (pp_loc pp_string)) vars (pattern i) p
 
 and expression i ppf x =
-  fprintf ppf
-    "@[<1>((pexp_desc@ %a)@ (pexp_loc@ %a)@ (pexp_loc_stack@ %a)@ \
-     (pexp_attributes@ %a))@]"
-    (expression_desc i) x.pexp_desc pp_location x.pexp_loc pp_location_stack
-    x.pexp_loc_stack (attributes i) x.pexp_attributes
+  fprintf ppf "@[<1>((pexp_desc@ %a)@ (pexp_attributes@ %a))@]"
+    (expression_desc i) x.pexp_desc (attributes i) x.pexp_attributes
 
 and expression_desc i ppf = function
   | Pexp_ident li ->
@@ -342,14 +324,12 @@ and letop i ppf x =
     x.let_ (list i binding_op) x.ands (expression i) x.body
 
 and binding_op i ppf x =
-  fprintf ppf
-    "@[<1>((pbop_op@ %a)@ (pbop_pat@ %a)@ (pbop_exp@ %a)@ (pbop_loc@ %a))@]"
+  fprintf ppf "@[<1>((pbop_op@ %a)@ (pbop_pat@ %a)@ (pbop_exp@ %a))@]"
     (pp_loc pp_string) x.pbop_op (pattern i) x.pbop_pat (expression i)
-    x.pbop_exp pp_location x.pbop_loc
+    x.pbop_exp
 
 and function_param i ppf x =
-  fprintf ppf "@[<1>((pparam_loc@ %a)@ (pparam_desc@ %a))@]" pp_location
-    x.pparam_loc (function_param_desc i) x.pparam_desc
+  fprintf ppf "@[<1>(pparam_desc@ %a)@]" (function_param_desc i) x.pparam_desc
 
 and function_param_desc i ppf = function
   | Pparam_val (label, default, p) ->
@@ -361,9 +341,9 @@ and function_param_desc i ppf = function
 and function_body i ppf = function
   | Pfunction_body e ->
     fprintf ppf "@[<1>(Pfunction_body@ %a)@]" (expression i) e
-  | Pfunction_cases (cases, loc, attrs) ->
-    fprintf ppf "@[<1>(Pfunction_cases@ %a@ %a@ %a)@]" (list i case) cases
-      pp_location loc (attributes i) attrs
+  | Pfunction_cases (cases, _loc, attrs) ->
+    fprintf ppf "@[<1>(Pfunction_cases@ %a@ %a)@]" (list i case) cases
+      (attributes i) attrs
 
 and type_constraint i ppf = function
   | Pconstraint t -> fprintf ppf "@[<1>(Pconstraint@ %a)@]" (core_type i) t
@@ -374,20 +354,19 @@ and type_constraint i ppf = function
 and value_description i ppf x =
   fprintf ppf
     "@[<1>((pval_name@ %a)@ (pval_type@ %a)@ (pval_prim@ %a)@ \
-     (pval_attributes@ %a)@ (pval_loc@ %a))@]"
+     (pval_attributes@ %a))@]"
     (pp_loc pp_string) x.pval_name (core_type i) x.pval_type (pp_list pp_string)
-    x.pval_prim (attributes i) x.pval_attributes pp_location x.pval_loc
+    x.pval_prim (attributes i) x.pval_attributes
 
 and type_declaration i ppf x =
   fprintf ppf
     "@[<1>((ptype_name@ %a)@ (ptype_params@ %a)@ (ptype_cstrs@ %a)@ \
      (ptype_kind@ %a)@ (ptype_private@ %a)@ (ptype_manifest@ %a)@ \
-     (ptype_attributes@ %a)@ (ptype_loc@ %a))@]"
+     (ptype_attributes@ %a))@]"
     (pp_loc pp_string) x.ptype_name (list i type_parameter) x.ptype_params
-    (pp_list (core_type_x_core_type_x_location i))
+    (pp_list (core_type_x_core_type i))
     x.ptype_cstrs (type_kind i) x.ptype_kind private_flag x.ptype_private
     (option i core_type) x.ptype_manifest (attributes i) x.ptype_attributes
-    pp_location x.ptype_loc
 
 and type_parameter i ppf (t, variance) =
   fprintf ppf "@[<1>(%a@ %a)@]" (core_type i) t type_variance variance
@@ -403,19 +382,19 @@ and type_kind i ppf = function
 
 and label_decl i ppf x =
   fprintf ppf
-    "@[<1>((pld_name@ %a)@ (pld_mutable@ %a)@ (pld_type@ %a)@ (pld_loc@ %a)@ \
-     (pld_attributes@ %a))@]"
+    "@[<1>((pld_name@ %a)@ (pld_mutable@ %a)@ (pld_type@ %a)@ (pld_attributes@ \
+     %a))@]"
     (pp_loc pp_string) x.pld_name mutable_flag x.pld_mutable (core_type i)
-    x.pld_type pp_location x.pld_loc (attributes i) x.pld_attributes
+    x.pld_type (attributes i) x.pld_attributes
 
 and constructor_decl i ppf x =
   fprintf ppf
     "@[<1>((pcd_name@ %a)@ (pcd_vars@ %a)@ (pcd_args@ %a)@ (pcd_res@ %a)@ \
-     (pcd_loc@ %a)@ (pcd_attributes@ %a))@]"
+     (pcd_attributes@ %a))@]"
     (pp_loc pp_string) x.pcd_name
     (pp_list (pp_loc pp_string))
     x.pcd_vars (constructor_arguments i) x.pcd_args (option i core_type)
-    x.pcd_res pp_location x.pcd_loc (attributes i) x.pcd_attributes
+    x.pcd_res (attributes i) x.pcd_attributes
 
 and constructor_arguments i ppf = function
   | Pcstr_tuple ts ->
@@ -426,26 +405,22 @@ and constructor_arguments i ppf = function
 and type_extension i ppf x =
   fprintf ppf
     "@[<1>((ptyext_path@ %a)@ (ptyext_params@ %a)@ (ptyext_constructors@ %a)@ \
-     (ptyext_private@ %a)@ (ptyext_loc@ %a)@ (ptyext_attributes@ %a))@]"
+     (ptyext_private@ %a)@ (ptyext_attributes@ %a))@]"
     (pp_loc pp_longident) x.ptyext_path (list i type_parameter) x.ptyext_params
     (list i extension_constructor)
-    x.ptyext_constructors private_flag x.ptyext_private pp_location x.ptyext_loc
-    (attributes i) x.ptyext_attributes
+    x.ptyext_constructors private_flag x.ptyext_private (attributes i)
+    x.ptyext_attributes
 
 and extension_constructor i ppf x =
-  fprintf ppf
-    "@[<1>((pext_name@ %a)@ (pext_kind@ %a)@ (pext_loc@ %a)@ (pext_attributes@ \
-     %a))@]"
+  fprintf ppf "@[<1>((pext_name@ %a)@ (pext_kind@ %a)@ (pext_attributes@ %a))@]"
     (pp_loc pp_string) x.pext_name
     (extension_constructor_kind i)
-    x.pext_kind pp_location x.pext_loc (attributes i) x.pext_attributes
+    x.pext_kind (attributes i) x.pext_attributes
 
 and type_exception i ppf x =
-  fprintf ppf
-    "@[<1>((ptyexn_constructor@ %a)@ (ptyexn_loc@ %a)@ (ptyexn_attributes@ \
-     %a))@]"
-    (extension_constructor i) x.ptyexn_constructor pp_location x.ptyexn_loc
-    (attributes i) x.ptyexn_attributes
+  fprintf ppf "@[<1>((ptyexn_constructor@ %a)@ (ptyexn_attributes@ %a))@]"
+    (extension_constructor i) x.ptyexn_constructor (attributes i)
+    x.ptyexn_attributes
 
 and extension_constructor_kind i ppf = function
   | Pext_decl (vars, args, res) ->
@@ -456,9 +431,8 @@ and extension_constructor_kind i ppf = function
     fprintf ppf "@[<1>(Pext_rebind@ %a)@]" (pp_loc pp_longident) li
 
 and class_type i ppf x =
-  fprintf ppf "@[<1>((pcty_desc@ %a)@ (pcty_loc@ %a)@ (pcty_attributes@ %a))@]"
-    (class_type_desc i) x.pcty_desc pp_location x.pcty_loc (attributes i)
-    x.pcty_attributes
+  fprintf ppf "@[<1>((pcty_desc@ %a)@ (pcty_attributes@ %a))@]"
+    (class_type_desc i) x.pcty_desc (attributes i) x.pcty_attributes
 
 and class_type_desc i ppf = function
   | Pcty_constr (li, ts) ->
@@ -480,9 +454,8 @@ and class_signature i ppf x =
     x.pcsig_self (list i class_type_field) x.pcsig_fields
 
 and class_type_field i ppf x =
-  fprintf ppf "@[<1>((pctf_desc@ %a)@ (pctf_loc@ %a)@ (pctf_attributes@ %a))@]"
-    (class_type_field_desc i) x.pctf_desc pp_location x.pctf_loc (attributes i)
-    x.pctf_attributes
+  fprintf ppf "@[<1>((pctf_desc@ %a)@ (pctf_attributes@ %a))@]"
+    (class_type_field_desc i) x.pctf_desc (attributes i) x.pctf_attributes
 
 and class_type_field_desc i ppf = function
   | Pctf_inherit t -> fprintf ppf "@[<1>(Pctf_inherit@ %a)@]" (class_type i) t
@@ -506,15 +479,14 @@ and class_type_declaration i ppf x = class_type_infos i ppf x
 and class_type_infos i ppf x =
   fprintf ppf
     "@[<1>((pci_virt@ %a)@ (pci_params@ %a)@ (pci_name@ %a)@ (pci_expr@ %a)@ \
-     (pci_loc@ %a)@ (pci_attributes@ %a))@]"
+     (pci_attributes@ %a))@]"
     virtual_flag x.pci_virt (list i type_parameter) x.pci_params
-    (pp_loc pp_string) x.pci_name (class_type i) x.pci_expr pp_location
-    x.pci_loc (attributes i) x.pci_attributes
+    (pp_loc pp_string) x.pci_name (class_type i) x.pci_expr (attributes i)
+    x.pci_attributes
 
 and class_expr i ppf x =
-  fprintf ppf "@[<1>((pcl_desc@ %a)@ (pcl_loc@ %a)@ (pcl_attributes@ %a))@]"
-    (class_expr_desc i) x.pcl_desc pp_location x.pcl_loc (attributes i)
-    x.pcl_attributes
+  fprintf ppf "@[<1>((pcl_desc@ %a)@ (pcl_attributes@ %a))@]"
+    (class_expr_desc i) x.pcl_desc (attributes i) x.pcl_attributes
 
 and class_expr_desc i ppf = function
   | Pcl_constr (li, ts) ->
@@ -546,9 +518,8 @@ and class_structure i ppf x =
     x.pcstr_self (list i class_field) x.pcstr_fields
 
 and class_field i ppf x =
-  fprintf ppf "@[<1>((pcf_desc@ %a)@ (pcf_loc@ %a)@ (pcf_attributes@ %a))@]"
-    (class_field_desc i) x.pcf_desc pp_location x.pcf_loc (attributes i)
-    x.pcf_attributes
+  fprintf ppf "@[<1>((pcf_desc@ %a)@ (pcf_attributes@ %a))@]"
+    (class_field_desc i) x.pcf_desc (attributes i) x.pcf_attributes
 
 and class_field_desc i ppf = function
   | Pcf_inherit (override_, class_, alias) ->
@@ -581,15 +552,14 @@ and class_field_kind i ppf = function
 and class_declaration i ppf x =
   fprintf ppf
     "@[<1>((pci_virt@ %a)@ (pci_params@ %a)@ (pci_name@ %a)@ (pci_expr@ %a)@ \
-     (pci_loc@ %a)@ (pci_attributes@ %a))@]"
+     (pci_attributes@ %a))@]"
     virtual_flag x.pci_virt (list i type_parameter) x.pci_params
-    (pp_loc pp_string) x.pci_name (class_expr i) x.pci_expr pp_location
-    x.pci_loc (attributes i) x.pci_attributes
+    (pp_loc pp_string) x.pci_name (class_expr i) x.pci_expr (attributes i)
+    x.pci_attributes
 
 and module_type i ppf x =
-  fprintf ppf "@[<1>((pmty_desc@ %a)@ (pmty_loc@ %a)@ (pmty_attributes@ %a))@]"
-    (module_type_desc i) x.pmty_desc pp_location x.pmty_loc (attributes i)
-    x.pmty_attributes
+  fprintf ppf "@[<1>((pmty_desc@ %a)@ (pmty_attributes@ %a))@]"
+    (module_type_desc i) x.pmty_desc (attributes i) x.pmty_attributes
 
 and module_type_desc i ppf = function
   | Pmty_ident li ->
@@ -618,8 +588,7 @@ and functor_parameter i ppf = function
 and signature i ppf x = list i signature_item ppf x
 
 and signature_item i ppf x =
-  fprintf ppf "@[<1>((psig_desc@ %a)@ (psig_loc@ %a))@]" (signature_item_desc i)
-    x.psig_desc pp_location x.psig_loc
+  fprintf ppf "@[<1>(psig_desc@ %a)@]" (signature_item_desc i) x.psig_desc
 
 and signature_item_desc i ppf = function
   | Psig_value value ->
@@ -664,51 +633,40 @@ and signature_item_desc i ppf = function
       (attributes i) attrs
 
 and module_declaration i ppf x =
-  fprintf ppf
-    "@[<1>((pmd_name@ %a)@ (pmd_type@ %a)@ (pmd_attributes@ %a)@ (pmd_loc@ \
-     %a))@]"
+  fprintf ppf "@[<1>((pmd_name@ %a)@ (pmd_type@ %a)@ (pmd_attributes@ %a))@]"
     (pp_loc pp_string_option) x.pmd_name (module_type i) x.pmd_type
-    (attributes i) x.pmd_attributes pp_location x.pmd_loc
+    (attributes i) x.pmd_attributes
 
 and module_substitution i ppf x =
   fprintf ppf
-    "@[<1>((pms_name@ %a)@ (pms_manifest@ %a)@ (pms_attributes@ %a)@ (pms_loc@ \
-     %a))@]"
+    "@[<1>((pms_name@ %a)@ (pms_manifest@ %a)@ (pms_attributes@ %a))@]"
     (pp_loc pp_string) x.pms_name (pp_loc pp_longident) x.pms_manifest
-    (attributes i) x.pms_attributes pp_location x.pms_loc
+    (attributes i) x.pms_attributes
 
 and module_type_declaration i ppf x =
-  fprintf ppf
-    "@[<1>((pmtd_name@ %a)@ (pmtd_type@ %a)@ (pmtd_attributes@ %a)@ (pmtd_loc@ \
-     %a))@]"
+  fprintf ppf "@[<1>((pmtd_name@ %a)@ (pmtd_type@ %a)@ (pmtd_attributes@ %a))@]"
     (pp_loc pp_string) x.pmtd_name (option i module_type) x.pmtd_type
-    (attributes i) x.pmtd_attributes pp_location x.pmtd_loc
+    (attributes i) x.pmtd_attributes
 
 and open_description i ppf x =
   fprintf ppf
-    "@[<1>((popen_expr@ %a)@ (popen_override@ %a)@ (popen_loc@ %a)@ \
-     (popen_attributes@ %a))@]"
+    "@[<1>((popen_expr@ %a)@ (popen_override@ %a)@ (popen_attributes@ %a))@]"
     (pp_loc pp_longident) x.popen_expr override_flag x.popen_override
-    pp_location x.popen_loc (attributes i) x.popen_attributes
+    (attributes i) x.popen_attributes
 
 and open_declaration i ppf x =
   fprintf ppf
-    "@[<1>((popen_expr@ %a)@ (popen_override@ %a)@ (popen_loc@ %a)@ \
-     (popen_attributes@ %a))@]"
-    (module_expr i) x.popen_expr override_flag x.popen_override pp_location
-    x.popen_loc (attributes i) x.popen_attributes
+    "@[<1>((popen_expr@ %a)@ (popen_override@ %a)@ (popen_attributes@ %a))@]"
+    (module_expr i) x.popen_expr override_flag x.popen_override (attributes i)
+    x.popen_attributes
 
 and include_description i ppf x =
-  fprintf ppf
-    "@[<1>((pincl_mod@ %a)@ (pincl_loc@ %a)@ (pincl_attributes@ %a))@]"
-    (module_type i) x.pincl_mod pp_location x.pincl_loc (attributes i)
-    x.pincl_attributes
+  fprintf ppf "@[<1>((pincl_mod@ %a)@ (pincl_attributes@ %a))@]" (module_type i)
+    x.pincl_mod (attributes i) x.pincl_attributes
 
 and include_declaration i ppf x =
-  fprintf ppf
-    "@[<1>((pincl_mod@ %a)@ (pincl_loc@ %a)@ (pincl_attributes@ %a))@]"
-    (module_expr i) x.pincl_mod pp_location x.pincl_loc (attributes i)
-    x.pincl_attributes
+  fprintf ppf "@[<1>((pincl_mod@ %a)@ (pincl_attributes@ %a))@]" (module_expr i)
+    x.pincl_mod (attributes i) x.pincl_attributes
 
 and with_constraint i ppf = function
   | Pwith_type (li, decl) ->
@@ -731,9 +689,8 @@ and with_constraint i ppf = function
       (pp_loc pp_longident) li2
 
 and module_expr i ppf x =
-  fprintf ppf "@[<1>((pmod_desc@ %a)@ (pmod_loc@ %a)@ (pmod_attributes@ %a))@]"
-    (module_expr_desc i) x.pmod_desc pp_location x.pmod_loc (attributes i)
-    x.pmod_attributes
+  fprintf ppf "@[<1>((pmod_desc@ %a)@ (pmod_attributes@ %a))@]"
+    (module_expr_desc i) x.pmod_desc (attributes i) x.pmod_attributes
 
 and module_expr_desc i ppf = function
   | Pmod_ident li ->
@@ -758,8 +715,7 @@ and module_expr_desc i ppf = function
 and structure i ppf x = list i structure_item ppf x
 
 and structure_item i ppf x =
-  fprintf ppf "@[<1>((pstr_desc@ %a)@ (pstr_loc@ %a))@]" (structure_item_desc i)
-    x.pstr_desc pp_location x.pstr_loc
+  fprintf ppf "@[<1>(pstr_desc@ %a)@]" (structure_item_desc i) x.pstr_desc
 
 and structure_item_desc i ppf = function
   | Pstr_eval (e, attrs) ->
@@ -812,22 +768,19 @@ and value_constraint i ppf = function
 and value_binding i ppf x =
   fprintf ppf
     "@[<1>((pvb_pat@ %a)@ (pvb_expr@ %a)@ (pvb_constraint@ %a)@ \
-     (pvb_attributes@ %a)@ (pvb_loc@ %a))@]"
+     (pvb_attributes@ %a))@]"
     (pattern i) x.pvb_pat (expression i) x.pvb_expr
     (option i value_constraint)
-    x.pvb_constraint (attributes i) x.pvb_attributes pp_location x.pvb_loc
+    x.pvb_constraint (attributes i) x.pvb_attributes
 
 and module_binding i ppf x =
-  fprintf ppf
-    "@[<1>((pmb_name@ %a)@ (pmb_expr@ %a)@ (pmb_attributes@ %a)@ (pmb_loc@ \
-     %a))@]"
+  fprintf ppf "@[<1>((pmb_name@ %a)@ (pmb_expr@ %a)@ (pmb_attributes@ %a))@]"
     (pp_loc pp_string_option) x.pmb_name (module_expr i) x.pmb_expr
-    (attributes i) x.pmb_attributes pp_location x.pmb_loc
+    (attributes i) x.pmb_attributes
 
 and attribute i ppf x =
-  fprintf ppf "@[<1>((attr_name@ %a)@ (attr_payload@ %a)@ (attr_loc@ %a))@]"
-    (pp_loc pp_string) x.attr_name (payload i) x.attr_payload pp_location
-    x.attr_loc
+  fprintf ppf "@[<1>((attr_name@ %a)@ (attr_payload@ %a))@]" (pp_loc pp_string)
+    x.attr_name (payload i) x.attr_payload
 
 and attributes i ppf xs = list i attribute ppf xs
 
@@ -844,9 +797,8 @@ and payload i ppf = function
 
 and longident_loc _ ppf li = pp_loc pp_longident ppf li
 
-and core_type_x_core_type_x_location i ppf (t1, t2, loc) =
-  fprintf ppf "@[<1>(%a@ %a@ %a)@]" (core_type i) t1 (core_type i) t2
-    pp_location loc
+and core_type_x_core_type i ppf (t1, t2, _loc) =
+  fprintf ppf "@[<1>(%a@ %a)@]" (core_type i) t1 (core_type i) t2
 
 and longident_x_core_type i ppf (li, t) =
   fprintf ppf "@[<1>(%a@ %a)@]" (pp_loc pp_longident) li (core_type i) t
@@ -869,15 +821,13 @@ let rec toplevel_phrase i ppf = function
     fprintf ppf "@[<1>(Ptop_dir@ %a)@]" (toplevel_directive i) directive
 
 and toplevel_directive i ppf x =
-  fprintf ppf "@[<1>((pdir_name@ %a)@ (pdir_arg@ %a)@ (pdir_loc@ %a))@]"
-    (pp_loc pp_string) x.pdir_name
+  fprintf ppf "@[<1>((pdir_name@ %a)@ (pdir_arg@ %a))@]" (pp_loc pp_string)
+    x.pdir_name
     (option i directive_argument)
-    x.pdir_arg pp_location x.pdir_loc
+    x.pdir_arg
 
 and directive_argument i ppf x =
-  fprintf ppf "@[<1>((pdira_desc@ %a)@ (pdira_loc@ %a))@]"
-    (directive_argument_desc i)
-    x.pdira_desc pp_location x.pdira_loc
+  fprintf ppf "@[<1>(pdira_desc@ %a)@]" (directive_argument_desc i) x.pdira_desc
 
 and directive_argument_desc _ ppf = function
   | Pdir_string s -> fprintf ppf "@[<1>(Pdir_string@ %S)@]" s

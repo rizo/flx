@@ -118,13 +118,15 @@ for (i = e1 to e2) {
 // --- Pexp_constraint  ---
 // --- Pexp_coerce  ---
 // --- Pexp_send  ---
+//obj#meth1;
+
 // --- Pexp_new  ---
 // --- Pexp_setinstvar  ---
 // --- Pexp_override  ---
 // --- Pexp_struct_item  ---
 
 // --- Pexp_assert  ---
-assert true;
+assert True;
 assert (a > 2);
 
 
@@ -136,14 +138,25 @@ lazy 1;
 // lazy 1 2;
 
 // --- Pexp_poly  ---
+
 // --- Pexp_object  ---
+#{ };
+#{ a = 1, b = 2 };
+//#{ as this, }
+//{
+//  #get_x = x,
+//  #move d = x <- x + d,
+//  #print = print_int s#get_x
+//};
+
 // --- Pexp_newtype  ---
 // --- Pexp_pack  ---
 // --- Pexp_letop  ---
 // --- Pexp_extension  ---
 
 // --- Pexp_unreachable ---
-!;
+// NOTE: fails to parse as ml syntax.
+// !;
 match a { _ -> !};
 
 

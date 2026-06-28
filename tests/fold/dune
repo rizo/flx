@@ -2,13 +2,25 @@
  (deps Basic.fl)
  (action
   (with-stdout-to
-   Basic_actual.ml
-   (run %{bin:fl} %{deps}))))
+   Basic_fl_actual.sexp
+   (run %{bin:fl} -i fl -o sexp %{deps}))))
+
+(rule
+ (deps Basic.ml)
+ (action
+  (with-stdout-to
+   Basic_ml_actual.sexp
+   (run %{bin:fl} -i ml -o sexp %{deps}))))
 
 (rule
  (alias runtest)
  (action
-  (diff Basic_expected.ml Basic_actual.ml)))
+  (diff Basic_expected.sexp Basic_fl_actual.sexp)))
+
+(rule
+ (alias runtest)
+ (action
+  (diff Basic_expected.sexp Basic_ml_actual.sexp)))
 
 ; (rule
 ;  (deps Either.fl)
