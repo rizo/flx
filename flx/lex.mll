@@ -3,7 +3,6 @@
     lexbuf : Lexing.lexbuf;
     strbuf : Buffer.t;
     current : Token.t ref;
-    lookahead : Token.t ref;
     in_template : bool;
     mutable consumed_whitespace : bool;
   }
@@ -38,6 +37,22 @@
     let str = Buffer.contents buf in
     Buffer.reset buf;
     str
+
+  let peek_char lexbuf =
+    (* Refill if needed. *)
+    if lexbuf.Lexing.lex_curr_pos >= lexbuf.Lexing.lex_buffer_len
+         && not lexbuf.Lexing.lex_eof_reached
+    then
+      lexbuf.Lexing.refill_buff lexbuf;
+
+    if lexbuf.Lexing.lex_curr_pos < lexbuf.Lexing.lex_buffer_len then
+      Some (Bytes.get lexbuf.Lexing.lex_buffer lexbuf.Lexing.lex_curr_pos)
+    else
+      None
+
+  let is_whitespace = function
+    | ' ' | '\n' | '\t' -> true
+    | _ -> false
 }
 
 (* Ident *)
@@ -215,19 +230,21 @@ and read_string is_template lex = parse
   }
 
 {
-  let advance_ lex =
-    (* lex.consumed_whitespace <- false; *)
-    lex.current := !(lex.lookahead);
-    lex.lookahead := read lex lex.lexbuf;
-    (* let w_before = lex.consumed_whitespace in *)
-    (* Format.eprintf "t=%a w_before=%b l=%C@." Token.pp !(lex.current) w_before curr_lexeme; *)
-    (* let w_before = lex.consumed_whitespace in *)
-    (* lex.consumed_whitespace <- false; *)
-    (* Format.eprintf "(%s%a%s)@." (if w_before then " " else "") Token.pp !(lex.token) (if w_after then " " else "")  *)
+  let advance lex =
+    let ws_before =
+      match peek_char lex.lexbuf with
+      | None -> false
+      | Some c -> is_whitespace c
+    in
+    lex.current := read lex lex.lexbuf;
+    let ws_after =
+      match peek_char lex.lexbuf with
+      | None -> false
+      | Some c -> is_whitespace c
+    in
+    (* Format.eprintf "(%s%a%s)@." (if ws_before then " " else "") Token.pp !(lex.current) (if ws_after then " " else "")  *)
     ()
 
-  let advance lex =
-    lex.current := read lex lex.lexbuf
 
   let peek lex =
     !(lex.current)
@@ -247,12 +264,10 @@ and read_string is_template lex = parse
     let lex = {
       lexbuf;
       current = ref Token.Bof;
-      lookahead = ref Token.Bof;
       strbuf = Buffer.create 64;
       in_template = false;
       consumed_whitespace = false;
     } in
-    (* lex.lookahead := read lex lex.lexbuf; *)
     advance lex;
     lex
 
