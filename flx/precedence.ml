@@ -23,15 +23,17 @@
 
     SEE: https://ocaml.org/manual/5.3/api/Ocaml_operators.html *)
 
-let juxt = 200
+let stop = 0
+let semi = 10
 let comma = 20
 let attr = 25
+let juxt = 200
 
 let get (tok : Token.t) =
   match tok with
   (* Terminators *)
-  | Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _ -> 0
-  | Semi -> 10
+  | Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _ -> stop
+  | Semi -> semi
   | Comma -> comma
   | Sym "=" -> -30
   | Sym "|" -> 40

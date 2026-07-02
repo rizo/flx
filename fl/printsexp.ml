@@ -1,13 +1,12 @@
 open struct
-  module Current_ast = Astlib.Ast_503
-  module Asttypes = Current_ast.Asttypes
-  module Longident = Current_ast.Longident
-  module Parsetree = Current_ast.Parsetree
+  module Target_ast = Astlib.Ast_504
+  module Asttypes = Target_ast.Asttypes
+  module Longident = Target_ast.Longident
+  module Parsetree = Target_ast.Parsetree
 end
 
 open Asttypes
 open Format
-open Lexing
 open Location
 open Parsetree
 
@@ -36,9 +35,10 @@ let pp_char ppf c = fprintf ppf "%C" c
 let rec pp_longident ppf = function
   | Longident.Lident s -> fprintf ppf "@[<1>(Lident@ %S)@]" s
   | Longident.Ldot (li, s) ->
-    fprintf ppf "@[<1>(Ldot@ %a@ %S)@]" pp_longident li s
+    fprintf ppf "@[<1>(Ldot@ %a@ %S)@]" pp_longident li.txt s.txt
   | Longident.Lapply (li1, li2) ->
-    fprintf ppf "@[<1>(Lapply@ %a@ %a)@]" pp_longident li1 pp_longident li2
+    fprintf ppf "@[<1>(Lapply@ %a@ %a)@]" pp_longident li1.txt pp_longident
+      li2.txt
 
 (* let pp_loc pp ppf x = *)
 (*   fprintf ppf "@[<1>((txt@ %a)@ (loc@ %a))@]" pp x.txt pp_location x.loc *)
@@ -88,6 +88,7 @@ let variance ppf = function
   | Covariant -> fprintf ppf "Covariant"
   | Contravariant -> fprintf ppf "Contravariant"
   | NoVariance -> fprintf ppf "NoVariance"
+  | Bivariant -> fprintf ppf "Bivariant"
 
 let injectivity ppf = function
   | Injective -> fprintf ppf "Injective"
@@ -118,7 +119,9 @@ and core_type_desc i ppf = function
   | Ptyp_arrow (lbl, t1, t2) ->
     fprintf ppf "@[<1>(Ptyp_arrow@ %a@ %a@ %a)@]" arg_label lbl (core_type i) t1
       (core_type i) t2
-  | Ptyp_tuple ts -> fprintf ppf "@[<1>(Ptyp_tuple@ %a)@]" (list i core_type) ts
+  (* FIXME: Print label *)
+  | Ptyp_tuple ts ->
+    fprintf ppf "@[<1>(Ptyp_tuple@ %a)@]" (list i core_type) (List.map snd ts)
   | Ptyp_constr (li, ts) ->
     fprintf ppf "@[<1>(Ptyp_constr@ %a@ %a)@]" (pp_loc pp_longident) li
       (list i core_type) ts
@@ -147,10 +150,10 @@ and core_type_desc i ppf = function
   | Ptyp_extension ext ->
     fprintf ppf "@[<1>(Ptyp_extension@ %a)@]" (extension i) ext
 
-and package_type i ppf (path, constraints) =
-  fprintf ppf "@[<1>(%a@ %a)@]" (pp_loc pp_longident) path
+and package_type i ppf (pt : Parsetree.package_type) =
+  fprintf ppf "@[<1>(%a@ %a)@]" (pp_loc pp_longident) pt.ppt_path
     (pp_list (longident_x_core_type i))
-    constraints
+    pt.ppt_cstrs
 
 and row_field i ppf x =
   fprintf ppf "@[<1>((prf_desc@ %a)@ (prf_attributes@ %a))@]" (row_field_desc i)
@@ -184,7 +187,9 @@ and pattern_desc i ppf = function
   | Ppat_constant c -> fprintf ppf "@[<1>(Ppat_constant@ %a)@]" (constant i) c
   | Ppat_interval (c1, c2) ->
     fprintf ppf "@[<1>(Ppat_interval@ %a@ %a)@]" (constant i) c1 (constant i) c2
-  | Ppat_tuple ps -> fprintf ppf "@[<1>(Ppat_tuple@ %a)@]" (list i pattern) ps
+  (* TODO: closed; labels *)
+  | Ppat_tuple (ps, _closed) ->
+    fprintf ppf "@[<1>(Ppat_tuple@ %a)@]" (list i pattern) (List.map snd ps)
   | Ppat_construct (li, arg) ->
     fprintf ppf "@[<1>(Ppat_construct@ %a@ %a)@]" (pp_loc pp_longident) li
       (pp_option (constructor_pattern i))
@@ -240,8 +245,9 @@ and expression_desc i ppf = function
       cases
   | Pexp_try (e, cases) ->
     fprintf ppf "@[<1>(Pexp_try@ %a@ %a)@]" (expression i) e (list i case) cases
+  (* TODO: labels *)
   | Pexp_tuple es ->
-    fprintf ppf "@[<1>(Pexp_tuple@ %a)@]" (list i expression) es
+    fprintf ppf "@[<1>(Pexp_tuple@ %a)@]" (list i expression) (List.map snd es)
   | Pexp_construct (li, arg) ->
     fprintf ppf "@[<1>(Pexp_construct@ %a@ %a)@]" (pp_loc pp_longident) li
       (option i expression) arg
@@ -305,7 +311,8 @@ and expression_desc i ppf = function
   | Pexp_newtype (name, body) ->
     fprintf ppf "@[<1>(Pexp_newtype@ %a@ %a)@]" (pp_loc pp_string) name
       (expression i) body
-  | Pexp_pack module_ ->
+  (* TODO: pack type *)
+  | Pexp_pack (module_, _) ->
     fprintf ppf "@[<1>(Pexp_pack@ %a)@]" (module_expr i) module_
   | Pexp_open (open_, body) ->
     fprintf ppf "@[<1>(Pexp_open@ %a@ %a)@]" (open_declaration i) open_

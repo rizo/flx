@@ -1,14 +1,14 @@
 open struct
   let longident_unflatten = Longident.unflatten
 
-  module Current_ast = Astlib.Ast_503
-  module Parsetree = Current_ast.Parsetree
-  module Asttypes = Current_ast.Asttypes
-  module Longident = Current_ast.Longident
+  module Target_ast = Astlib.Ast_504
+  module Parsetree = Target_ast.Parsetree
+  module Asttypes = Target_ast.Asttypes
+  module Longident = Target_ast.Longident
 end
 
 (* Assert current AST version: [Ast] must match [Ast_helper]. *)
-let _ : char -> Current_ast.Parsetree.constant = Ast_helper.Const.char
+(* let _ : char -> Target_ast.Parsetree.constant = Ast_helper.Const.char *)
 
 open Prelude
 
@@ -44,7 +44,6 @@ module Ml = struct
       { Parsetree.pc_lhs; pc_guard; pc_rhs }
   end
 
-  let cfk_concrete override e = Parsetree.Cfk_concrete (override, e)
   let mknoloc = Location.mknoloc
   let mkloc loc x = Location.mkloc x loc
   let ident_noloc xs = mknoloc (Option.get (longident_unflatten xs))
@@ -81,7 +80,8 @@ end = struct
           path_id
       in
       Ml.Typ.constr ~loc (Ml.ident ~loc path_id) []
-    | `parens (`comma items) -> Ml.Typ.tuple ~loc (List.map eval items)
+    | `parens (`comma items) ->
+      Ml.Typ.tuple ~loc (List.map (fun item -> (None, eval item)) items)
     | `parens typ -> eval typ
     | `infix ("->", left, right) ->
       Ml.Typ.arrow ~loc Asttypes.Nolabel (eval left) (eval right)
@@ -196,7 +196,8 @@ end = struct
     | `parens (`seq []) -> eval_unit ()
     (* (items...,) _ *)
     | `parens (`comma items) ->
-      Ml.Exp.tuple ~loc (List.map E_expression.eval items)
+      Ml.Exp.tuple ~loc
+        (List.map (fun item -> (None, E_expression.eval item)) items)
     (* (_) *)
     | `parens exp -> E_expression.eval exp
     (* --- Pexp_let --- *)
@@ -376,14 +377,23 @@ end = struct
     (* C args... *)
     | `seq (`id id :: args_ml) when is_upper_name id ->
       let types_list = [] in
-      let args_ml = Ml.Pat.tuple ~loc (List.map E_pattern.eval args_ml) in
+      (* TODO: Closed? *)
+      let args_ml =
+        Ml.Pat.tuple ~loc
+          (List.map (fun arg -> (None, E_pattern.eval arg)) args_ml)
+          Closed
+      in
       Ml.Pat.construct ~loc (Ml.ident_noloc [ id ]) (Some (types_list, args_ml))
     (* _ *)
     | `id "_" -> Ml.Pat.any ~loc ()
     (* a *)
     | `id id -> Ml.Pat.var ~loc (Ml.mknoloc id)
     (* (1, 'x', a) *)
-    | `parens (`comma items) -> Ml.Pat.tuple ~loc (List.map E_pattern.eval items)
+    (* TODO: Closed? *)
+    | `parens (`comma items) ->
+      Ml.Pat.tuple ~loc
+        (List.map (fun item -> (None, E_pattern.eval item)) items)
+        Closed
     (* (_) *)
     | `parens pat -> E_pattern.eval pat
     (* _ | _ *)
@@ -573,11 +583,11 @@ let format_of_string = function
   | "ast" -> Some `ast
   | _ -> None
 
-let string_of_format = function
-  | `fl -> "fl"
-  | `ml -> "ml"
-  | `sexp -> "sexp"
-  | `ast -> "ast"
+(* let string_of_format = function *)
+(*   | `fl -> "fl" *)
+(*   | `ml -> "ml" *)
+(*   | `sexp -> "sexp" *)
+(*   | `ast -> "ast" *)
 
 module Args = struct
   let input_format = ref "fl"

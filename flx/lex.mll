@@ -2,8 +2,10 @@
   type t = {
     lexbuf : Lexing.lexbuf;
     strbuf : Buffer.t;
-    token : Token.t ref;
+    current : Token.t ref;
+    lookahead : Token.t ref;
     in_template : bool;
+    mutable consumed_whitespace : bool;
   }
 
   let update_loc lexbuf file line absolute chars =
@@ -56,10 +58,14 @@ let int = (digit | nonzero digit+)
 
 rule read lex = parse
   (* Whitespace *)
-  | [' ' '\t']+ { read lex lexbuf }
+  | [' ' '\t']+ {
+    lex.consumed_whitespace <- true;
+    read lex lexbuf
+  }
 
   (* Whitespace: update loc info *)
   | '\n' | '\r' {
+    lex.consumed_whitespace <- true;
     update_loc lexbuf None 1 false 0;
     read lex lexbuf
   }
@@ -209,14 +215,45 @@ and read_string is_template lex = parse
   }
 
 {
+  let advance_ lex =
+    (* lex.consumed_whitespace <- false; *)
+    lex.current := !(lex.lookahead);
+    lex.lookahead := read lex lex.lexbuf;
+    (* let w_before = lex.consumed_whitespace in *)
+    (* Format.eprintf "t=%a w_before=%b l=%C@." Token.pp !(lex.current) w_before curr_lexeme; *)
+    (* let w_before = lex.consumed_whitespace in *)
+    (* lex.consumed_whitespace <- false; *)
+    (* Format.eprintf "(%s%a%s)@." (if w_before then " " else "") Token.pp !(lex.token) (if w_after then " " else "")  *)
+    ()
+
+  let advance lex =
+    lex.current := read lex lex.lexbuf
+
+  let peek lex =
+    !(lex.current)
+
+  let consume lex expected =
+    let tok = peek lex in
+    if Token.eq tok expected then advance lex
+    else
+      if Token.eq tok Token.Eof then
+        let err = Format.asprintf "%a: end of input when expecting %a" pp_loc (loc lex) Token.pp expected in
+        failwith err
+      else
+        let err = Format.asprintf "%a: expected %a, got %a" pp_loc (loc lex) Token.pp expected Token.pp tok in
+        failwith err
+
   let read_lexbuf lexbuf =
     let lex = {
       lexbuf;
-      token = ref Token.Eof;
+      current = ref Token.Bof;
+      lookahead = ref Token.Bof;
       strbuf = Buffer.create 64;
       in_template = false;
+      consumed_whitespace = false;
     } in
-    lex.token := read lex lexbuf;
+    (* lex.lookahead := read lex lex.lexbuf; *)
+    advance lex;
     lex
 
   let read_string s =
@@ -227,21 +264,4 @@ and read_string is_template lex = parse
     let lexbuf = Lexing.from_channel ic in
     (match file_name with Some f -> Lexing.set_filename lexbuf f | _ -> ());
     read_lexbuf lexbuf
-
-  let next lex =
-    lex.token := read lex lex.lexbuf
-
-  let peek lex =
-    !(lex.token)
-
-  let consume lex expected =
-    let tok = peek lex in
-    if Token.eq tok expected then next lex
-    else
-      if Token.eq tok Token.Eof then
-        let err = Format.asprintf "%a: end of input when expecting %a" pp_loc (loc lex) Token.pp expected in
-        failwith err
-      else
-        let err = Format.asprintf "%a: expected %a, got %a" pp_loc (loc lex) Token.pp expected Token.pp tok in
-        failwith err
  }

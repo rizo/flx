@@ -84,6 +84,23 @@ a, 1; b, 2; c, 3
     ({_} .)
 
 
+# Operator fixity
+a + b
+    (_+_ a b)
+a+ b
+    (_ (_+ a) b)
+a +b
+    (_ a (+_ b))
++a
+    (+_ a)
++ a
+    (+_ a)
+a+
+    (_+ a)
+a +
+    (_+ a)
+
+
 # Prefix operators
 
 -a

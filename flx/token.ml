@@ -18,6 +18,7 @@ type t =
   | Template_start of string
   | Template_mid of string
   | Template_end of string
+  | Bof
   | Eof
 
 let pp =
@@ -43,6 +44,7 @@ let pp =
     | Template_start x -> pf f "(template-start %S)" x
     | Template_mid x -> pf f "(template-mid %S)" x
     | Template_end x -> pf f "(template-end %S)" x
+    | Bof -> pf f "(bof)"
     | Eof -> pf f "(eof)"
 
 let eq t1 t2 = Stdlib.( = ) t1 t2

@@ -48,21 +48,21 @@ and parse_infix lex ~rbp left =
   else left
 
 and parse_atom lex atom =
-  Lex.next lex;
+  Lex.advance lex;
   atom
 
 and parse_quote lex =
-  Lex.next lex;
+  Lex.advance lex;
   let expr = parse_prefix lex in
   `quote expr
 
 and parse_unquote lex =
-  Lex.next lex;
+  Lex.advance lex;
   let expr = parse_prefix lex in
   `unquote expr
 
 and parse_attr lex =
-  Lex.next lex;
+  Lex.advance lex;
   let attr = parse_prefix lex in
   let tok = Lex.peek lex in
   let precedence = abs (Precedence.get tok) in
@@ -74,23 +74,23 @@ and parse_attr lex =
 
 and parse_template ~start lex0 =
   let lex = { lex0 with Lex.in_template = true } in
-  Lex.next lex;
+  Lex.advance lex;
   let rec loop acc =
     match Lex.peek lex with
     | Template_mid str ->
-      Lex.next lex;
+      Lex.advance lex;
       loop (`str str :: acc)
     | Template_end str ->
-      Lex.next lex0;
+      Lex.advance lex0;
       `str str :: acc
     | _ -> (
       let expr = parse_expr lex in
       match Lex.peek lex with
       | Template_mid str ->
-        Lex.next lex;
+        Lex.advance lex;
         loop (`str str :: expr :: acc)
       | Template_end str ->
-        Lex.next lex0;
+        Lex.advance lex0;
         `str str :: expr :: acc
       | unexpected ->
         fail "%a: invalid template syntax: %a" Lex.pp_loc (Lex.loc lex) Token.pp
@@ -113,7 +113,7 @@ and parse_seq lex ~rbp left =
   `seq expr_list
 
 and parse_prefix_op ~rbp lex op =
-  Lex.next lex;
+  Lex.advance lex;
   match Lex.peek lex with
   | Eof
   | Rparen
@@ -128,7 +128,7 @@ and parse_prefix_op ~rbp lex op =
     `prefix (op, expr)
 
 and parse_infix_op lex op ~rbp left =
-  Lex.next lex;
+  Lex.advance lex;
   match Lex.peek lex with
   | Eof
   | Rparen
@@ -143,7 +143,7 @@ and parse_infix_op lex op ~rbp left =
     `infix (op, left, right)
 
 and parse_sep_start lex ~delim mk =
-  Lex.next lex;
+  Lex.advance lex;
   let precedence = Precedence.get delim in
   let lbp = abs precedence in
   let rbp = if precedence < 0 then lbp - 1 else lbp in
@@ -156,7 +156,7 @@ and parse_sep lex ~delim ~rbp mk left =
     let expr = parse_expr ~rbp lex in
     let tok = Lex.peek lex in
     if Token.eq tok delim then (
-      Lex.next lex;
+      Lex.advance lex;
       loop (expr :: acc)
     )
     else expr :: acc
@@ -174,7 +174,7 @@ and parse_sep_trailing lex ~delim ~rbp mk left =
       let expr = parse_expr ~rbp lex in
       let tok = Lex.peek lex in
       if Token.eq tok delim then (
-        Lex.next lex;
+        Lex.advance lex;
         loop (expr :: acc)
       )
       else expr :: acc
@@ -185,7 +185,7 @@ and parse_sep_trailing lex ~delim ~rbp mk left =
 
 and parse_block lex closing mk =
   let lex' = { lex with in_template = false } in
-  Lex.next lex';
+  Lex.advance lex';
   let tok = Lex.peek lex in
   if Token.eq tok closing then (
     Lex.consume lex closing;
