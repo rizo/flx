@@ -2,7 +2,7 @@
   type t = {
     lexbuf : Lexing.lexbuf;
     strbuf : Buffer.t;
-    current : Token.t ref;
+    current : Token.sp ref;
     in_template : bool;
     mutable consumed_whitespace : bool;
   }
@@ -231,26 +231,33 @@ and read_string is_template lex = parse
 
 {
   let advance lex =
-    let ws_before =
+    let before =
       match peek_char lex.lexbuf with
       | None -> false
       | Some c -> is_whitespace c
     in
-    lex.current := read lex lex.lexbuf;
-    let ws_after =
+    let token = read lex lex.lexbuf in
+    let after =
       match peek_char lex.lexbuf with
       | None -> false
       | Some c -> is_whitespace c
     in
-    (* Format.eprintf "(%s%a%s)@." (if ws_before then " " else "") Token.pp !(lex.current) (if ws_after then " " else "")  *)
-    ()
+    let sp =
+      match before, after with
+      | true, true -> `both
+      | true, false -> `left
+      | false, false -> `none
+      | false, true -> `right
+    in
+    lex.current := { Token.token; sp; }
 
 
   let peek lex =
     !(lex.current)
 
   let consume lex expected =
-    let tok = peek lex in
+    let tok_sp = peek lex in
+    let tok = tok_sp.token in
     if Token.eq tok expected then advance lex
     else
       if Token.eq tok Token.Eof then
@@ -261,9 +268,10 @@ and read_string is_template lex = parse
         failwith err
 
   let read_lexbuf lexbuf =
+    let dummy_tok_sp = { Token.token = Eof; sp = `none } in
     let lex = {
       lexbuf;
-      current = ref Token.Bof;
+      current = ref dummy_tok_sp;
       strbuf = Buffer.create 64;
       in_template = false;
       consumed_whitespace = false;

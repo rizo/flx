@@ -50,7 +50,7 @@ let get (tok : Token.t) =
   | Sym "**" -> -80
   | Sym "." -> 300
   | Sym "!" -> juxt
-  | Sym "~" -> juxt
+  (* | Sym "~" -> juxt *)
   | Sym "#" -> juxt
   | Sym op -> (
     match op.[0] with
@@ -75,3 +75,13 @@ let get (tok : Token.t) =
   | Lbrace
   | Lbracket
   | Template_start _ -> juxt
+
+let get_sp (tok_sp : Token.sp) =
+  match tok_sp with
+  | {
+   token = Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _;
+   sp = _;
+  } -> stop
+  | { token; sp = `both | `none } -> get token
+  | { token = _; sp = `left } -> juxt
+  | { token; sp = `right } -> get token
