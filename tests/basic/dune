@@ -11,11 +11,27 @@
   (with-stdout-to
    %{target}
    (with-stdin-from
-     %{input}
-     (run ./%{run})))))
+    %{input}
+    (run ./%{run})))))
 
 (rule
  (alias runtest)
  (action
   (diff basic.test basic.output)))
 
+(rule
+ (target ops.output)
+ (deps
+  (:run ./run.exe)
+  (:input ops.test))
+ (action
+  (with-stdout-to
+   %{target}
+   (with-stdin-from
+    %{input}
+    (run ./%{run})))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff ops.test ops.output)))

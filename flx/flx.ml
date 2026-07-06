@@ -22,7 +22,6 @@ and parse_prefix lex =
     begin match tok_sp.sp with
     | `left -> parse_prefix_op ~rbp:Precedence.juxt lex op
     | _ -> parse_prefix_op ~rbp:(Precedence.juxt - 1) lex op
-    (* | _ -> parse_atom lex (`op op) *)
     end
   | Lparen -> parse_block lex Token.Rparen (fun x -> `parens x)
   | Lbrace -> parse_block lex Token.Rbrace (fun x -> `braces x)
@@ -54,7 +53,7 @@ and parse_infix lex ~rbp left =
     | Sym op -> parse_infix_op lex ~rbp op
     | _ -> parse_seq ~rbp lex
   in
-  if rbp < lbp then
+  if lbp > rbp then
     let left' = parse left in
     parse_infix lex ~rbp left'
   else left
