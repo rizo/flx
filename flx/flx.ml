@@ -17,11 +17,12 @@ and parse_prefix lex =
   | Template_start str -> parse_template ~start:str lex
   | Sym "@" -> parse_attr lex
   | Sym "|" as delim -> parse_sep_start lex ~delim (fun x -> `pipe x)
-  | Sym (("~" | "!" | "#") as op) -> parse_prefix_op ~rbp:Precedence.juxt lex op
   | Sym op ->
     begin match tok_sp.sp with
-    | `left -> parse_prefix_op ~rbp:Precedence.juxt lex op
-    | _ -> parse_prefix_op ~rbp:(Precedence.juxt - 1) lex op
+    (* Examples: [+ a b c] and [_, + a b c] *)
+    | `right | `both -> parse_prefix_op ~rbp:(Precedence.juxt - 1) lex op
+    (* Examples: [+a b c] and [_, +a b c] *)
+    | `none | `left -> parse_prefix_op ~rbp:Precedence.juxt lex op
     end
   | Lparen -> parse_block lex Token.Rparen (fun x -> `parens x)
   | Lbrace -> parse_block lex Token.Rbrace (fun x -> `braces x)
