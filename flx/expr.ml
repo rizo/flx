@@ -1,5 +1,7 @@
 open Prelude
 
+type tier = [ `tight | `loose ]
+
 type t =
   [ `id of string
   | `op of string
@@ -10,9 +12,9 @@ type t =
   | `parens of t
   | `brackets of t
   | `braces of t
-  | `prefix of string * t
-  | `infix of string * t * t
-  | `postfix of string * t
+  | `prefix of tier * string * t
+  | `infix of tier * string * t * t
+  | `postfix of tier * string * t
   | `comma of t list
   | `semi of t list
   | `dot of t list
@@ -34,9 +36,14 @@ let rec pp f (t : t) =
   | `parens x -> Fmt.pf f "@[<hv2>((_)@ %a@])" pp x
   | `brackets x -> Fmt.pf f "@[<hv2>([_]@ %a@])" pp x
   | `braces x -> Fmt.pf f "@[<hv2>({_}@ %a@])" pp x
-  | `prefix (fix, x) -> Fmt.pf f "@[<hv2>(%s_@ %a)@]" fix pp x
-  | `infix (fix, x, y) -> Fmt.pf f "@[<hv2>(_%s_@ %a@ %a)@]" fix pp x pp y
-  | `postfix (fix, x) -> Fmt.pf f "@[<hv2>(_%s@ %a)@]" fix pp x
+  | `prefix (`tight, fix, x) -> Fmt.pf f "@[<hv2>(%s.@ %a)@]" fix pp x
+  | `prefix (`loose, fix, x) -> Fmt.pf f "@[<hv2>(%s_@ %a)@]" fix pp x
+  | `infix (`tight, fix, x, y) ->
+    Fmt.pf f "@[<hv2>(.%s.@ %a@ %a)@]" fix pp x pp y
+  | `infix (`loose, fix, x, y) ->
+    Fmt.pf f "@[<hv2>(_%s_@ %a@ %a)@]" fix pp x pp y
+  | `postfix (`tight, fix, x) -> Fmt.pf f "@[<hv2>(.%s@ %a)@]" fix pp x
+  | `postfix (`loose, fix, x) -> Fmt.pf f "@[<hv2>(_%s@ %a)@]" fix pp x
   | `dot xs -> Fmt.pf f "(. @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
   | `pipe xs -> Fmt.pf f "(| @[%a@])" (Fmt.list ~sep:Fmt.sp pp) xs
   | `semi [] -> Fmt.pf f "(;)"

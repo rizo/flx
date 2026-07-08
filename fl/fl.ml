@@ -83,7 +83,7 @@ end = struct
     | `parens (`comma items) ->
       Ml.Typ.tuple ~loc (List.map (fun item -> (None, eval item)) items)
     | `parens typ -> eval typ
-    | `infix ("->", left, right) ->
+    | `infix (_, "->", left, right) ->
       Ml.Typ.arrow ~loc Asttypes.Nolabel (eval left) (eval right)
     | _ -> wip "typ" fl
 end
@@ -103,7 +103,7 @@ and Eval_case : sig
 end = struct
   let eval (fl : Flx.t) =
     match fl with
-    | `infix ("->", pat, exp) ->
+    | `infix (_, "->", pat, exp) ->
       let pat_ml = E_pattern.eval pat in
       let exp_ml = E_expression.eval exp in
       Ml.Case.mk pat_ml exp_ml
@@ -118,7 +118,7 @@ end = struct
 
   let eval_function_param fl =
     match fl with
-    | `prefix ("~", `id label) ->
+    | `prefix (_, "~", `id label) ->
       let pat = Ml.Pat.var ~loc (Ml.mkloc loc label) in
       Ml.Fun.val_param ~label:(Asttypes.Labelled label) pat
     | _ ->
@@ -128,7 +128,7 @@ end = struct
   let eval_apply_argument fl =
     match fl with
     (* ~a *)
-    | `prefix ("~", `id lbl) ->
+    | `prefix (_, "~", `id lbl) ->
       (Asttypes.Labelled lbl, Ml.Exp.ident ~loc (Ml.ident ~loc [ lbl ]))
     (* TODO: more cases *)
     (* ~(a = b) *)
@@ -138,7 +138,7 @@ end = struct
   (* TODO: Handle field name casing. *)
   let eval_record_field fl =
     match fl with
-    | `infix ("=", `id id_str, e_fl) ->
+    | `infix (_, "=", `id id_str, e_fl) ->
       let id_ml = Ml.ident ~loc [ id_str ] in
       let e_ml = E_expression.eval e_fl in
       (id_ml, e_ml)
@@ -150,7 +150,7 @@ end = struct
     (* TODO: inherit *)
     (* TODO: val *)
     (* TODO: method *)
-    | `infix ("=", `id id_str, e_fl) ->
+    | `infix (_, "=", `id id_str, e_fl) ->
       let id_ml = Ml.mkloc loc id_str in
       let e_ml = E_expression.eval e_fl in
       let field_kind =
@@ -201,7 +201,7 @@ end = struct
     (* (_) *)
     | `parens exp -> E_expression.eval exp
     (* --- Pexp_let --- *)
-    | `comma [ `infix ("=", `seq [ `id "let"; pat_fl ], exp_fl); body_fl ] ->
+    | `comma [ `infix (_, "=", `seq [ `id "let"; pat_fl ], exp_fl); body_fl ] ->
       let vb =
         let pat_ml = E_pattern.eval pat_fl in
         let exp_ml = E_expression.eval exp_fl in
@@ -232,7 +232,7 @@ end = struct
     | `seq (`id "match" :: _e1 :: _cases :: _extra :: _rest) ->
       fail "invalid match syntax: did you forget a semicolon?"
     (* --- Pexp_function --- *)
-    | `infix ("->", `seq (`id "fn" :: params_fl), body_fl) ->
+    | `infix (_, "->", `seq (`id "fn" :: params_fl), body_fl) ->
       let params_ml = List.map eval_function_param params_fl in
       let body_ml = E_expression.eval body_fl in
       Ml.Exp.function_ ~loc params_ml None (Ml.Fun.body body_ml)
@@ -240,7 +240,7 @@ end = struct
     | `seq [ `id "fn"; `braces (`comma cases) ] ->
       Ml.Exp.function_ ~loc [] None
         (Ml.Fun.cases (List.map Eval_case.eval cases))
-    (* | `infix ("->", `seq (`id "fn" :: args), body) -> *)
+    (* | `infix (_, "->", `seq (`id "fn" :: args), body) -> *)
     (*   Eval_fun.exp (List.map (fun arg -> Positional arg) args) body *)
 
     (* --- Pexp_ifthenelse --- *)
@@ -263,7 +263,7 @@ end = struct
     | `seq
         [
           `id "for";
-          `parens (`infix ("=", pat_fl, `seq [ start_fl; `id "to"; stop_fl ]));
+          `parens (`infix (_, "=", pat_fl, `seq [ start_fl; `id "to"; stop_fl ]));
           body_fl;
         ] ->
       let pat_ml = E_pattern.eval pat_fl in
@@ -276,7 +276,7 @@ end = struct
         [
           `id "for";
           `parens
-            (`infix ("=", pat_fl, `seq [ start_fl; `id "downto"; stop_fl ]));
+            (`infix (_, "=", pat_fl, `seq [ start_fl; `id "downto"; stop_fl ]));
           `braces body_fl;
         ] ->
       let pat_ml = E_pattern.eval pat_fl in
@@ -286,17 +286,17 @@ end = struct
       Ml.Exp.for_ ~loc pat_ml start_ml stop_ml Asttypes.Downto body_ml
     (* --- Pexp_variant --- *)
     (* #A *)
-    | `prefix ("#", `id id_str) -> Ml.Exp.variant ~loc id_str None
+    | `prefix (_, "#", `id id_str) -> Ml.Exp.variant ~loc id_str None
     (* #A 1 *)
-    | `seq [ `prefix ("#", `id id_str); e1_fl ] ->
+    | `seq [ `prefix (_, "#", `id id_str); e1_fl ] ->
       let e1_ml = E_expression.eval e1_fl in
       Ml.Exp.variant ~loc id_str (Some e1_ml)
     (* --- Pexp_object --- *)
     (* #{} *)
-    | `prefix ("#", `braces (`seq [])) ->
+    | `prefix (_, "#", `braces (`seq [])) ->
       Ml.Exp.object_ ~loc (Ml.Cstr.mk (Ml.Pat.any ()) [])
     (* #{ a = 1, ... } *)
-    | `prefix ("#", `braces (`comma fields_fl)) ->
+    | `prefix (_, "#", `braces (`comma fields_fl)) ->
       let fields_ml = List.map eval_class_field fields_fl in
       Ml.Exp.object_ ~loc (Ml.Cstr.mk (Ml.Pat.any ()) fields_ml)
     (* --- Pexp_assert --- *)
@@ -308,14 +308,14 @@ end = struct
       let f_ml = E_expression.eval f_fl in
       let args_ml = List.map eval_apply_argument args_fl in
       Ml.Exp.apply ~loc f_ml args_ml
-    | `infix (op, e1_fl, e2_fl) ->
+    | `infix (_, op, e1_fl, e2_fl) ->
       let f_ml = Ml.Exp.ident ~loc (Ml.ident_noloc [ op ]) in
       let e1_ml = E_expression.eval e1_fl in
       let e2_ml = E_expression.eval e2_fl in
       Ml.Exp.apply ~loc f_ml
         [ (Asttypes.Nolabel, e1_ml); (Asttypes.Nolabel, e2_ml) ]
     (* -a *)
-    | `prefix (op, e1_fl) ->
+    | `prefix (_, op, e1_fl) ->
       let f_ml =
         let op = if String.equal op "-" then "~-" else op in
         let op = if String.equal op "+" then "~+" else op in
@@ -330,16 +330,16 @@ end = struct
       Ml.Exp.array items_ml
     (* --- Pexp_record --- *)
     (* { ..r, x = 1, ... } *)
-    | `braces (`comma (`prefix ("..", record_fl) :: (_ as record_fields_fl))) ->
+    | `braces (`comma (`prefix (_, "..", record_fl) :: (_ as record_fields_fl))) ->
       let record_ml = E_expression.eval record_fl in
       let fields_ml = List.map eval_record_field record_fields_fl in
       Ml.Exp.record fields_ml (Some record_ml)
     (* { x = 1, ... } *)
-    | `braces (`comma (`infix ("=", _, _) :: _ as record_fields_fl)) ->
+    | `braces (`comma (`infix (_, "=", _, _) :: _ as record_fields_fl)) ->
       let fields_ml = List.map eval_record_field record_fields_fl in
       Ml.Exp.record fields_ml None
     (* { x = 1 } *)
-    | `braces (`infix ("=", _, _) as single_field_fl) ->
+    | `braces (`infix (_, "=", _, _) as single_field_fl) ->
       let single_field_ml = eval_record_field single_field_fl in
       Ml.Exp.record [ single_field_ml ] None
     (* --- Pexp_array --- *)
@@ -403,11 +403,11 @@ end = struct
         (E_pattern.eval (List.hd items))
         (List.map E_pattern.eval (List.tl items))
     (* x @ _ *)
-    | `infix ("@", `id alias, pat_fl) ->
+    | `infix (_, "@", `id alias, pat_fl) ->
       let pat_ml = E_pattern.eval pat_fl in
       Ml.Pat.alias pat_ml (Ml.mkloc loc alias)
     (* err: x @ _ *)
-    | `infix ("@", _, _) ->
+    | `infix (_, "@", _, _) ->
       fail "invalid pattern alias: alias must be an identifier"
     | `seq [ item ] -> E_pattern.eval item
     | _ -> wip "pat" fl
@@ -419,13 +419,13 @@ end = struct
   let eval (fl : Flx.t) =
     match fl with
     (* a : int = 3 *)
-    | `infix ("=", `infix (":", pat_fl, vc_fl), exp_fl) ->
+    | `infix (_, "=", `infix (_, ":", pat_fl, vc_fl), exp_fl) ->
       let pat_ml = E_pattern.eval pat_fl in
       let vc_ml = E_value_constraint.eval vc_fl in
       let exp_ml = E_expression.eval exp_fl in
       Ml.Vb.mk ~value_constraint:vc_ml pat_ml exp_ml
     (* a = 3 *)
-    | `infix ("=", pat_fl, exp_fl) ->
+    | `infix (_, "=", pat_fl, exp_fl) ->
       let pat_ml = E_pattern.eval pat_fl in
       let exp_ml = E_expression.eval exp_fl in
       Ml.Vb.mk pat_ml exp_ml
@@ -488,14 +488,15 @@ module E_structure_item = struct
       let type_ = Ml.Type.mk ~params (Ml.mkloc loc type_id) in
       Ml.Str.type_ Asttypes.Nonrecursive [ type_ ]
     (* type t = _ *)
-    | `infix ("=", `seq [ `id "type"; `id type_id ], body_fl) ->
+    | `infix (_, "=", `seq [ `id "type"; `id type_id ], body_fl) ->
       let params = [] in
       let kind = eval_type_kind body_fl in
       let type_ = Ml.Type.mk ~params ~kind (Ml.mkloc loc type_id) in
       Ml.Str.type_ Asttypes.Recursive [ type_ ]
     (* type t[A, B] = _ *)
     | `infix
-        ( "=",
+        ( _,
+          "=",
           `seq [ `id "type"; `id type_id; `brackets (`comma params_fl) ],
           body_fl
         ) ->
@@ -505,7 +506,7 @@ module E_structure_item = struct
       Ml.Str.type_ Asttypes.Recursive [ type_ ]
     (* --- Pstr_value --- *)
     (* val f args... = body *)
-    | `infix ("=", `seq (`id "val" :: `id name :: args_fl), body_exp_fl) ->
+    | `infix (_, "=", `seq (`id "val" :: `id name :: args_fl), body_exp_fl) ->
       let params_ml = List.map E_expression.eval_function_param args_fl in
       let vb_pat = Ml.Pat.var ~loc (Ml.mkloc loc name) in
       let body_exp_ml = E_expression.eval body_exp_fl in
@@ -514,13 +515,13 @@ module E_structure_item = struct
       let vb = Ml.Vb.mk vb_pat vb_exp in
       Ml.Str.value ~loc Asttypes.Nonrecursive [ vb ]
     (* val a = 1 *)
-    | `infix ("=", `seq (`id "val" :: [ vb_pat_fl ]), vb_exp_fl) ->
+    | `infix (_, "=", `seq (`id "val" :: [ vb_pat_fl ]), vb_exp_fl) ->
       let vb_pat_ml = E_pattern.eval vb_pat_fl in
       let vb_exp_ml = E_expression.eval vb_exp_fl in
       let vb_ml = Ml.Vb.mk vb_pat_ml vb_exp_ml in
       Ml.Str.value ~loc Asttypes.Nonrecursive [ vb_ml ]
     (* val a : int = 1 *)
-    | `infix ("=", `infix (":", `seq (`id "val" :: [ pat_fl ]), vc_fl), exp_fl)
+    | `infix (_, "=", `infix (_, ":", `seq (`id "val" :: [ pat_fl ]), vc_fl), exp_fl)
       ->
       let pat_ml = E_pattern.eval pat_fl in
       let vc_ml = E_value_constraint.eval vc_fl in
