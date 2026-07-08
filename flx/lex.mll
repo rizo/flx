@@ -242,14 +242,14 @@ and read_string is_template lex = parse
       | None -> false
       | Some c -> is_whitespace c
     in
-    let sp =
+    let tight =
       match before, after with
-      | true, true -> `both
-      | true, false -> `left
-      | false, false -> `none
-      | false, true -> `right
+      | true, true -> `none
+      | true, false -> `right
+      | false, false -> `both
+      | false, true -> `left
     in
-    lex.current := { Token.token; sp; }
+    lex.current := { Token.token; tight; }
 
 
   let peek lex =
@@ -268,7 +268,7 @@ and read_string is_template lex = parse
         failwith err
 
   let read_lexbuf lexbuf =
-    let dummy_tok_sp = { Token.token = Eof; sp = `none } in
+    let dummy_tok_sp = { Token.token = Eof; tight = `none } in
     let lex = {
       lexbuf;
       current = ref dummy_tok_sp;

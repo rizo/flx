@@ -13,8 +13,9 @@ let tap f x =
   x
 
 module Fmt = struct
+  let epr = Format.eprintf
+  let list ?sep pp l = Format.pp_print_list ?pp_sep:sep pp l
   let pf = Format.fprintf
   let pr = Format.printf
-  let list ?sep pp l = Format.pp_print_list ?pp_sep:sep pp l
   let sp = Format.pp_print_space
 end

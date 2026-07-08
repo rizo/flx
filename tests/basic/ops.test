@@ -87,8 +87,8 @@ f a ~
 f a c ~
     (_~ (_ f a c))
 
-f a ~ g b ~
-    (_~_ (_ f a) (_~ (_ g b)))
+f a + g b ~
+    (_+_ (_ f a) (_~ (_ g b)))
 
 
 # Infix

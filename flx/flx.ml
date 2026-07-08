@@ -18,12 +18,12 @@ and parse_prefix lex =
   | Sym "@" -> parse_attr lex
   | Sym "|" as delim -> parse_sep_start lex ~delim (fun x -> `pipe x)
   | Sym op ->
-    begin match tok_sp.sp with
+    begin match tok_sp.tight with
     (* Examples: [+ a b c] and [_, + a b c] *)
-    | `right | `both ->
+    | `left | `none ->
       parse_prefix_op ~tier:`loose ~rbp:(Precedence.juxt - 1) lex op
     (* Examples: [+a b c] and [_, +a b c] *)
-    | `none | `left -> parse_prefix_op ~tier:`tight ~rbp:Precedence.juxt lex op
+    | `both | `right -> parse_prefix_op ~tier:`tight ~rbp:Precedence.juxt lex op
     end
   | Lparen -> parse_block lex Token.Rparen (fun x -> `parens x)
   | Lbrace -> parse_block lex Token.Rbrace (fun x -> `braces x)
@@ -34,31 +34,25 @@ and parse_prefix lex =
 and parse_infix lex ~rbp left =
   let tok_sp = Lex.peek lex in
   let tok = tok_sp.token in
-  let lbp, parse =
-    match Precedence.fixity tok_sp with
-    | Stop -> (Precedence.stop, fun _ -> assert false)
-    | Juxt_item -> (Precedence.juxt, parse_seq ~rbp:Precedence.juxt lex)
-    | Postfix lbp ->
-      begin match tok with
-      | Sym op -> (lbp, parse_postfix_op lex op)
-      | _ -> assert false
-      end
-    | Infix precedence ->
-      let lbp = abs precedence in
-      let rbp = if precedence < 0 then lbp - 1 else lbp in
-      let parse =
-        match tok with
-        | Comma -> parse_sep_trailing lex ~delim:tok ~rbp (fun x -> `comma x)
-        | Semi -> parse_sep_trailing lex ~delim:tok ~rbp (fun x -> `semi x)
-        | Sym "." -> parse_sep lex ~delim:tok ~rbp (fun x -> `dot x)
-        | Sym "|" -> parse_sep lex ~delim:tok ~rbp (fun x -> `pipe x)
-        | Sym op ->
-          (* Only tight operators carry above-juxtaposition precedence. *)
-          let tier = if lbp > Precedence.juxt then `tight else `loose in
-          parse_infix_op lex ~tier ~rbp op
-        | _ -> assert false
-      in
-      (lbp, parse)
+  let precedence = Precedence.get tok_sp in
+  let lbp = abs precedence in
+  Fmt.epr "tok=%a p=%d lbp=%d rbp=%d@." Token.pp_sp tok_sp precedence lbp rbp;
+  let parse =
+    (* Negative precedence denotes associativity. *)
+    let rbp = if precedence < 0 then lbp - 1 else lbp in
+    if precedence = Precedence.juxt then parse_seq ~rbp lex
+    else
+      match tok with
+      | Comma -> parse_sep_trailing lex ~delim:tok ~rbp (fun x -> `comma x)
+      | Semi -> parse_sep_trailing lex ~delim:tok ~rbp (fun x -> `semi x)
+      | Sym "." -> parse_sep lex ~delim:tok ~rbp (fun x -> `dot x)
+      | Sym "|" -> parse_sep lex ~delim:tok ~rbp (fun x -> `pipe x)
+      | Sym op when precedence > Precedence.juxt -> parse_postfix_op lex op
+      | Sym op ->
+        (* Only tight operators carry above-juxtaposition precedence. *)
+        let tier = if lbp > Precedence.juxt then `tight else `loose in
+        parse_infix_op lex ~tier ~rbp op
+      | _ -> parse_seq ~rbp lex
   in
   if lbp > rbp then
     let left' = parse left in
@@ -82,8 +76,8 @@ and parse_unquote lex =
 and parse_attr lex =
   Lex.advance lex;
   let attr = parse_prefix lex in
-  let { Token.token; _ } = Lex.peek lex in
-  let precedence = abs (Precedence.get token) in
+  let tok_sp = Lex.peek lex in
+  let precedence = abs (Precedence.get tok_sp) in
   let expr =
     if precedence <= Precedence.attr then None
     else Some (parse_expr ~rbp:Precedence.attr lex)
@@ -120,23 +114,17 @@ and parse_template ~start lex0 =
   `template (List.rev (loop [ `str start ]))
 
 and parse_seq lex ~rbp left =
-  let seq rev_acc =
-    match List.rev rev_acc with
-    | [ expr ] -> expr
-    | exprs -> `seq exprs
-  in
   let rec loop acc =
     let tok_sp = Lex.peek lex in
-    match Precedence.fixity tok_sp with
-    | Juxt_item -> (
+    let precedence = Precedence.get tok_sp in
+    if Int.equal precedence Precedence.juxt then
       let expr = parse_expr ~rbp lex in
-      match expr with
-      | `op op -> `postfix (`loose, op, seq acc)
-      | _ -> loop (expr :: acc)
-    )
-    | _ -> `seq (List.rev acc)
+      loop (expr :: acc)
+    else acc
   in
-  loop [ left ]
+  let acc = [ left ] in
+  let items = List.rev (loop acc) in
+  `seq items
 
 and parse_postfix_op lex op left =
   Lex.advance lex;
@@ -176,7 +164,8 @@ and parse_infix_op lex op ~tier ~rbp left =
 
 and parse_sep_start lex ~delim mk =
   Lex.advance lex;
-  let precedence = Precedence.get delim in
+  (* TODO: Drop support for "|" and stop using get_tok. *)
+  let precedence = Precedence.get_tok__ delim in
   let lbp = abs precedence in
   let rbp = if precedence < 0 then lbp - 1 else lbp in
   let left = parse_expr ~rbp lex in

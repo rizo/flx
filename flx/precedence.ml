@@ -47,10 +47,9 @@ let dot = 400
 
 (* Attached (tight) operators bind above juxtaposition, below [.], preserving
    their relative precedence and associativity. *)
-let tighten precedence =
-  if precedence < 0 then precedence - juxt else precedence + juxt
+let tighten precedence = precedence + if precedence < 0 then -juxt else juxt
 
-let get (tok : Token.t) =
+let get_tok__ (tok : Token.t) =
   match tok with
   (* Terminators *)
   | Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _ -> stop
@@ -92,33 +91,132 @@ let get (tok : Token.t) =
   | Lbracket
   | Template_start _ -> juxt
 
-(** How a peeked token combines with the expression to its left. *)
-type fixity =
-  | Stop  (** Terminator: the current expression ends here. *)
-  | Juxt_item
-      (** The token starts a new juxtaposition item (atoms, blocks, and
-          operators attached to the item on their right, as in [f ~a]). *)
-  | Infix of int
-      (** Signed precedence: negative means right-associative. Attached
-          operators carry tight (above-juxtaposition) precedence. *)
-  | Postfix of int
-      (** Operator attached to its left operand only, as in [a? b]. The
-          precedence is always in the tight band. *)
-
-(* Separator punctuation is exempt from the spacing rules. *)
-let is_separator = function
-  | Token.Comma | Semi | Sym "." | Sym "|" -> true
-  | _ -> false
-
-let fixity ({ token; sp } : Token.sp) =
-  match token with
-  | Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _ -> Stop
-  | token when is_separator token -> Infix (get token)
-  | Sym _ -> (
-    match sp with
-    | `both -> Infix (get token)
-    | `none -> Infix (tighten (get token))
-    | `left -> Juxt_item
-    | `right -> Postfix (abs (tighten (get token)))
+let get_op op =
+  match op with
+  | "=" -> -30
+  | "|" -> 40
+  | ":" -> -50
+  | "->" -> -55
+  | "::" -> 60
+  | ":=" -> -60
+  | "<-" -> -60
+  | "&" | "&&" -> -70
+  | "||" -> -70
+  | "**" -> -80
+  | "." -> dot
+  | op -> (
+    match op.[0] with
+    | '@' -> 100
+    | '=' -> 101
+    | '<' | '>' -> 102
+    | '#' | '&' -> 102
+    | '|' -> 102
+    | '+' | '-' -> 103
+    | '*' | '/' -> 104
+    | _ -> 100
   )
-  | _ -> Juxt_item
+
+let get (tok_sp : Token.sp) =
+  match tok_sp with
+  (* Terminators, regardless of spacing. *)
+  | {
+   token = Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _;
+   tight = _;
+  } -> stop
+  (* Separator, regardless of spacing. *)
+  | { token = Semi; tight = _ } -> semi
+  (* Separator, regardless of spacing. *)
+  | { token = Comma; tight = _ } -> comma
+  (* TODO: Add dedicated Dot token. *)
+  (* NOTE: May not need to be specialized. *)
+  | { token = Sym "."; tight = _ } -> dot
+  (* TODO: Drop specialized support for "|". *)
+  | { token = Sym "|"; tight = _ } -> 40
+  (* Loose infix operators: [a + b]. *)
+  | { token = Sym op; tight = `none } -> get_op op
+  (* Tight infix operators: [a+b]. *)
+  | { token = Sym op; tight = `both } -> tighten (get_op op)
+  (* Tight postfix operators: [a+ ...]. *)
+  | { token = Sym op; tight = `left } -> abs (tighten (get_op op))
+  (* Tight juxt operators: [... +a]. *)
+  | { token = Sym _; tight = `right } -> juxt
+  (* Atoms or starting delimiters. *)
+  | {
+   token =
+     ( Id _
+     | Str _
+     | Comment _
+     | Char _
+     | Int _
+     | Backtick
+     | Dollar
+     | Lparen
+     | Lbrace
+     | Lbracket
+     | Template_start _ );
+   tight = _;
+  } -> juxt
+
+let fixity (tok_sp : Token.sp) =
+  match tok_sp with
+  (* Terminators, regardless of spacing. *)
+  | {
+   token = Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _;
+   tight = _;
+  } -> `stop
+  (* Separator, regardless of spacing. *)
+  | { token = Semi; tight = _ } -> `infix semi
+  (* Separator, regardless of spacing. *)
+  | { token = Comma; tight = _ } -> `infix comma
+  (* TODO: Add dedicated Dot token. *)
+  (* NOTE: May not need to be specialized. *)
+  | { token = Sym "."; tight = _ } -> `infix dot
+  (* TODO: Drop specialized support for "|". *)
+  | { token = Sym "|"; tight = _ } -> `infix 40
+  (* Loose infix operators: [a + b]. *)
+  | { token = Sym op; tight = `none } -> `infix (get_op op)
+  (* Tight infix operators: [a+b]. *)
+  | { token = Sym op; tight = `both } -> `infix (tighten (get_op op))
+  (* Tight postfix operators: [a+ ...]. *)
+  | { token = Sym op; tight = `left } -> `postfix (abs (tighten (get_op op)))
+  (* Tight juxt operators: [... +a]. *)
+  | { token = Sym _; tight = `right } -> `juxt
+  (* Atoms or starting delimiters. *)
+  | {
+   token =
+     ( Id _
+     | Str _
+     | Comment _
+     | Char _
+     | Int _
+     | Backtick
+     | Dollar
+     | Lparen
+     | Lbrace
+     | Lbracket
+     | Template_start _ );
+   tight = _;
+  } -> `juxt
+
+(* type fixity = *)
+(*   | Stop *)
+(*   | Juxt *)
+(*   | Infix of int *)
+(*   | Postfix of int *)
+
+(* let fixity ({ token; tight } : Token.sp) = *)
+(*   match token with *)
+(*   (* Stop and bubble and let the parent parser continue. *) *)
+(*   | Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _ -> Stop *)
+(*   | Semi -> Infix semi *)
+(*   | Comma -> Infix comma *)
+(*   | Sym "." -> Infix dot *)
+(*   | Sym "|" -> Infix 40 *)
+(*   | Sym _ -> ( *)
+(*     match tight with *)
+(*     | `none -> Infix (get token) *)
+(*     | `both -> Infix (tighten (get token)) *)
+(*     | `right -> Juxt *)
+(*     | `left -> Postfix (abs (tighten (get token))) *)
+(*   ) *)
+(*   | _ -> Juxt *)
