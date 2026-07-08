@@ -525,6 +525,13 @@
  (pstr_desc
   (Pstr_eval
    ((pexp_desc
+    (Pexp_send ((pexp_desc (Pexp_ident (Lident "obj"))) (pexp_attributes ()))
+     "meth1"))
+    (pexp_attributes ()))
+   ()))
+ (pstr_desc
+  (Pstr_eval
+   ((pexp_desc
     (Pexp_assert
      ((pexp_desc (Pexp_construct (Lident "true") None)) (pexp_attributes ()))))
     (pexp_attributes ()))

@@ -83,6 +83,7 @@ for i = e1 to e2 do
 done
 ;;
 
+obj#meth1;;
 assert true;;
 assert (a > 2);;
 lazy 1;;

@@ -118,7 +118,7 @@ for (i = e1 to e2) {
 // --- Pexp_constraint  ---
 // --- Pexp_coerce  ---
 // --- Pexp_send  ---
-//obj#meth1;
+obj#meth1;
 
 // --- Pexp_new  ---
 // --- Pexp_setinstvar  ---

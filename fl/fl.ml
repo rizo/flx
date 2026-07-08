@@ -284,6 +284,12 @@ end = struct
       let stop_ml = E_expression.eval stop_fl in
       let body_ml = E_expression.eval body_fl in
       Ml.Exp.for_ ~loc pat_ml start_ml stop_ml Asttypes.Downto body_ml
+    (* --- Pexp_constraint --- *)
+    (* --- Pexp_coerce --- *)
+    (* --- Pexp_send --- *)
+    | `infix (_, "#", obj_fl, `id meth_name) ->
+      let obj_ml = E_expression.eval obj_fl in
+      Ml.Exp.send obj_ml (Ml.mkloc loc meth_name)
     (* --- Pexp_variant --- *)
     (* #A *)
     | `prefix (_, "#", `id id_str) -> Ml.Exp.variant ~loc id_str None
@@ -330,7 +336,8 @@ end = struct
       Ml.Exp.array items_ml
     (* --- Pexp_record --- *)
     (* { ..r, x = 1, ... } *)
-    | `braces (`comma (`prefix (_, "..", record_fl) :: (_ as record_fields_fl))) ->
+    | `braces (`comma (`prefix (_, "..", record_fl) :: (_ as record_fields_fl)))
+      ->
       let record_ml = E_expression.eval record_fl in
       let fields_ml = List.map eval_record_field record_fields_fl in
       Ml.Exp.record fields_ml (Some record_ml)
@@ -521,7 +528,8 @@ module E_structure_item = struct
       let vb_ml = Ml.Vb.mk vb_pat_ml vb_exp_ml in
       Ml.Str.value ~loc Asttypes.Nonrecursive [ vb_ml ]
     (* val a : int = 1 *)
-    | `infix (_, "=", `infix (_, ":", `seq (`id "val" :: [ pat_fl ]), vc_fl), exp_fl)
+    | `infix
+        (_, "=", `infix (_, ":", `seq (`id "val" :: [ pat_fl ]), vc_fl), exp_fl)
       ->
       let pat_ml = E_pattern.eval pat_fl in
       let vc_ml = E_value_constraint.eval vc_fl in
