@@ -25,7 +25,7 @@ type t =
   | Eof
 
 (* TODO: Update t to allow tight only on sym. Others are not important. *)
-type sp = { token : t; tight : [ `left | `right | `both | `none ] }
+type sp = { token : t; tight : [ `before | `after | `both | `none ] }
 
 let pp f token =
   match token with
@@ -52,9 +52,17 @@ let pp f token =
 
 let pp_sp f x =
   match x.tight with
-  | `left -> pf f "[_%a]" pp x.token
-  | `right -> pf f "[%a_]" pp x.token
-  | `none -> pf f "[%a]" pp x.token
-  | `both -> pf f "[_%a_]" pp x.token
+  | `before -> pf f "[.%a ]" pp x.token
+  | `after -> pf f "[ %a.]" pp x.token
+  | `none -> pf f "[ %a ]" pp x.token
+  | `both -> pf f "[.%a.]" pp x.token
 
 let eq t1 t2 = Stdlib.( = ) t1 t2
+
+let eq_tight t1 t2 =
+  match (t1, t2) with
+  | `before, `before -> true
+  | `after, `after -> true
+  | `both, `both -> true
+  | `none, `none -> true
+  | _ -> false

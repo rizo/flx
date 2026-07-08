@@ -113,9 +113,10 @@ let get_op op =
     | '|' -> 102
     | '+' | '-' -> 103
     | '*' | '/' -> 104
-    | _ -> 100
+    | _ -> 105
   )
 
+(* TODO: Remove *)
 let get (tok_sp : Token.sp) =
   match tok_sp with
   (* Terminators, regardless of spacing. *)
@@ -137,9 +138,9 @@ let get (tok_sp : Token.sp) =
   (* Tight infix operators: [a+b]. *)
   | { token = Sym op; tight = `both } -> tighten (get_op op)
   (* Tight postfix operators: [a+ ...]. *)
-  | { token = Sym op; tight = `left } -> abs (tighten (get_op op))
+  | { token = Sym op; tight = `before } -> abs (tighten (get_op op))
   (* Tight juxt operators: [... +a]. *)
-  | { token = Sym _; tight = `right } -> juxt
+  | { token = Sym _; tight = `after } -> juxt
   (* Atoms or starting delimiters. *)
   | {
    token =
@@ -178,9 +179,9 @@ let fixity (tok_sp : Token.sp) =
   (* Tight infix operators: [a+b]. *)
   | { token = Sym op; tight = `both } -> `infix (tighten (get_op op))
   (* Tight postfix operators: [a+ ...]. *)
-  | { token = Sym op; tight = `left } -> `postfix (abs (tighten (get_op op)))
+  | { token = Sym op; tight = `before } -> `postfix (abs (tighten (get_op op)))
   (* Tight juxt operators: [... +a]. *)
-  | { token = Sym _; tight = `right } -> `juxt
+  | { token = Sym _; tight = `after } -> `juxt
   (* Atoms or starting delimiters. *)
   | {
    token =
@@ -198,25 +199,10 @@ let fixity (tok_sp : Token.sp) =
    tight = _;
   } -> `juxt
 
-(* type fixity = *)
-(*   | Stop *)
-(*   | Juxt *)
-(*   | Infix of int *)
-(*   | Postfix of int *)
-
-(* let fixity ({ token; tight } : Token.sp) = *)
-(*   match token with *)
-(*   (* Stop and bubble and let the parent parser continue. *) *)
-(*   | Eof | Rparen | Rbrace | Rbracket | Template_mid _ | Template_end _ -> Stop *)
-(*   | Semi -> Infix semi *)
-(*   | Comma -> Infix comma *)
-(*   | Sym "." -> Infix dot *)
-(*   | Sym "|" -> Infix 40 *)
-(*   | Sym _ -> ( *)
-(*     match tight with *)
-(*     | `none -> Infix (get token) *)
-(*     | `both -> Infix (tighten (get token)) *)
-(*     | `right -> Juxt *)
-(*     | `left -> Postfix (abs (tighten (get token))) *)
-(*   ) *)
-(*   | _ -> Juxt *)
+let pp_fixity f fixity =
+  let pf = Format.fprintf in
+  match fixity with
+  | `stop -> pf f "(stop)"
+  | `juxt -> pf f "(juxt)"
+  | `infix p -> pf f "(infix %d)" p
+  | `postfix p -> pf f "(postfix %d)" p

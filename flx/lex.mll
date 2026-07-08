@@ -234,20 +234,20 @@ and read_string is_template lex = parse
     let before =
       match peek_char lex.lexbuf with
       | None -> false
-      | Some c -> is_whitespace c
+      | Some c -> not (is_whitespace c)
     in
     let token = read lex lex.lexbuf in
     let after =
       match peek_char lex.lexbuf with
       | None -> false
-      | Some c -> is_whitespace c
+      | Some c -> not (is_whitespace c)
     in
     let tight =
       match before, after with
-      | true, true -> `none
-      | true, false -> `right
-      | false, false -> `both
-      | false, true -> `left
+      | false, false -> `none
+      | false, true -> `after
+      | true, true -> `both
+      | true, false -> `before
     in
     lex.current := { Token.token; tight; }
 
