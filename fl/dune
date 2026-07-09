@@ -1,3 +1,4 @@
 (executable
+ (name cli)
  (public_name fl)
  (libraries flx ppxlib ppxlib.astlib))

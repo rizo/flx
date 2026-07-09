@@ -50,18 +50,19 @@ and parse_infix lex ~rbp left =
       end
     | `infix precedence ->
       let lbp = abs precedence in
-      let rbp = if precedence < 0 then lbp - 1 else lbp in
+      let rbp' = if precedence < 0 then lbp - 1 else lbp in
       let parse =
         match tok with
-        | Comma -> parse_sep_trailing lex ~delim:tok ~rbp (fun x -> `comma x)
-        | Semi -> parse_sep_trailing lex ~delim:tok ~rbp (fun x -> `semi x)
-        | Sym "." -> parse_sep lex ~delim:tok ~rbp (fun x -> `dot x)
-        | Sym "|" -> parse_sep lex ~delim:tok ~rbp (fun x -> `pipe x)
+        | Comma ->
+          parse_sep_trailing lex ~delim:tok ~rbp:rbp' (fun x -> `comma x)
+        | Semi -> parse_sep_trailing lex ~delim:tok ~rbp:rbp' (fun x -> `semi x)
+        | Sym "." -> parse_sep lex ~delim:tok ~rbp:rbp' (fun x -> `dot x)
+        | Sym "|" -> parse_sep lex ~delim:tok ~rbp:rbp' (fun x -> `pipe x)
         | Sym op ->
           let tier =
             if Token.eq_tight tok_sp.tight `both then `tight else `loose
           in
-          parse_infix_op lex ~tier ~rbp op
+          parse_infix_op lex ~tier ~rbp:rbp' op
         | _ -> assert false
       in
       (lbp, parse)
@@ -96,7 +97,7 @@ and parse_attr lex =
     if precedence <= Precedence.attr then None
     else Some (parse_expr ~rbp:Precedence.attr lex)
   in
-  `attr (attr, expr)
+  `at (attr, expr)
 
 and parse_template ~start lex0 =
   let lex = { lex0 with Lex.in_template = true } in

@@ -4,3 +4,4 @@
 - [ ] `{ | a -> 1 | b -> 2}` stops at `->`.
 - [ ] `row (gap = #sm) (x =#middle)` or `val a =%xxx`
 - [ ] Should `@` have right assoc?
+- [ ] Consider using `\` as `$` in Haskell.

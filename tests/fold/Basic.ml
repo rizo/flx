@@ -84,6 +84,23 @@ done
 ;;
 
 obj#meth1;;
+
+(* (object *)
+(*    method f = 1 *)
+(*    method g = 2 *)
+(* end *)
+(* ) *)
+(*   #g *)
+(* ;; *)
+
+(* Get operators *)
+a.[1];;
+a.{1};;
+a.(1);;
+a.!(1);;
+a.>++>(1);;
+
+(* Assert *)
 assert true;;
 assert (a > 2);;
 lazy 1;;
