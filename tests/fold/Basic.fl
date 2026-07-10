@@ -1,3 +1,177 @@
+// Reference of the fl syntax, covering the OCaml parsetree.
+// Sections follow the order of data/parsetree.mli.
+//
+// Conventions:
+// - TODO: no supported syntax yet (proposed syntax in the comment).
+// - FIXME: parses, but produces an incorrect tree.
+
+// ===== constant =====
+
+// --- Pconst_integer ---
+1;
+// FIXME
+// 2L;
+
+// --- Pconst_char ---
+'x';
+
+// --- Pconst_string ---
+"hello";
+// {sql|SELECT 1;|sql};
+
+// --- Pconst_float ---
+// FIXME
+// 3.14;
+
+// ===== extension points =====
+
+// --- attribute ---
+// [@attr];
+// [@attr 1] id;
+
+// --- extension ---
+// FIXME: parses as application
+// %id;
+// %id 2 3;
+
+// --- payload ---
+// [@attr e];
+// [@attr : T];
+// [@attr ? P];
+
+// ===== core_type =====
+
+// --- Ptyp_any ---
+val typ_any : _ = x;
+
+// --- Ptyp_var ---
+val typ_var : A = x;
+
+// --- Ptyp_arrow ---
+val typ_arrow1 : int -> string = x;
+val typ_arrow2 : int -> string -> bool = x;
+val typ_arrow3 : (int -> bool) -> int = x;
+
+// TODO: labelled arguments
+// val typ_arrow4 : (~n: int) -> string = x;
+// val typ_arrow5 : (?n: int) -> string = x;
+
+// --- Ptyp_tuple ---
+val typ_tuple1 : (int, string) = x;
+val typ_tuple2 : (int, (string, bool)) = x;
+
+// TODO: labelled tuple elements
+// val typ_tuple3 : (~n: int, string) = x;
+
+// --- Ptyp_constr ---
+val typ_constr1 : int = x;
+val typ_constr2 : M.t = x;
+val typ_constr3 : M1.M2.t = x;
+
+// TODO: type parameters
+// val typ_constr4 : list[int] = x;
+// val typ_constr5 : Result.t[A, Err] = x;
+
+// --- Ptyp_object ---
+// val typ_object : {} = x;
+
+// --- Ptyp_class ---
+// val typ_class : #c = x;
+
+// --- Ptyp_alias ---
+// val typ_alias : (int @ A) = x;
+
+// --- Ptyp_variant ---
+// val typ_variant : { #A | #B int } = x;
+
+// --- Ptyp_poly ---
+// val typ_poly : [A] :: A -> int = x;
+
+// --- Ptyp_package ---
+// val typ_package : (sig S) = x;
+
+// --- Ptyp_open ---
+// val typ_open : M.(t) = x;
+
+// --- Ptyp_extension ---
+// val typ_extension : %id = x;
+
+// ===== pattern =====
+
+// --- Ppat_any ---
+match e { _ -> 0 };
+
+// --- Ppat_var ---
+match e { x -> x };
+
+// --- Ppat_alias ---
+match e { x @ 2 -> x };
+
+// --- Ppat_constant ---
+match e { 1 -> 0, 'a' -> 1, "abc" -> 2, _ -> 3 };
+
+// --- Ppat_interval ---
+// match e { 'a'..'z' -> 0 };
+
+// --- Ppat_tuple ---
+match e { (a, b) -> a };
+match e { (a, b, c) -> a };
+
+// TODO: labelled tuple elements
+// match e { (~a, b) -> a };
+
+// --- Ppat_construct ---
+match e { None -> 0, _ -> 1 };
+match e { C a b -> 1, _ -> 0 };
+
+// FIXME: single argument is wrapped in a tuple
+// match e { Some a -> a, _ -> 0 };
+
+// TODO: qualified constructors
+// match e { M.A -> 1 };
+
+// TODO: locally abstract types
+// match e { C (type A B) x -> x };
+
+// --- Ppat_variant ---
+// match e { #A -> 1 };
+// match e { #B x -> 2 };
+
+// --- Ppat_record ---
+// match e { {~a, b = Some b} -> 1 };
+
+// --- Ppat_array ---
+// match e { {} -> 0, {a} -> 1, {a, b} -> 2 };
+
+// --- Ppat_or ---
+match e { (1 | 2) -> 0, _ -> 1 };
+
+// --- Ppat_constraint ---
+// match e { (x : int) -> x };
+
+// --- Ppat_type ---
+// match e { &t -> 0 };
+
+// --- Ppat_lazy ---
+// match e { lazy x -> x };
+
+// --- Ppat_unpack ---
+// match e { mod M -> 0 };
+
+// --- Ppat_exception ---
+// match e { exn x -> 0 };
+
+// --- Ppat_effect ---
+// match e { eff (E x) k -> 0 };
+
+// --- Ppat_extension ---
+// match e { %ext -> 0 };
+
+// --- Ppat_open ---
+// match e { M.(A) -> 0 };
+
+// ===== expression =====
+
 // --- Pexp_ident ---
 a;
 X.a;
@@ -16,11 +190,27 @@ X1.X2.a;
 let a = 1, a + 1;
 //{let a = 1; a + 1};
 
+// TODO: multiple bindings
+// let a = 1, and b = 2, a + b;
+// let { a = 1, b = 2 }, a + b;
+
+// TODO: recursive bindings
+// rec f = fn x -> f x, f 1;
+
 // --- Pexp_function ---
 fn x -> x;
 fn x y -> x + y;
-// TODO
+fn () -> 1;
+fn ~x -> x;
+fn { 1 -> 0, x -> 1 };
 // fn { x -> x };
+
+// TODO: optional and default parameters
+// fn ~(a = 1) b -> a + b;
+// fn ~a? -> a;
+
+// TODO: constrained parameters
+// fn (a : int) -> a;
 
 // --- Pexp_apply ---
 f x;
@@ -31,12 +221,21 @@ f ~x1 ~x2 ();
 a + 2;
 a + -2;
 
+// FIXME: parses as application of '='
+// f ~(x1 = 1) x2;
+
+// TODO: optional arguments
+// f ~x1? x2;
+
 // --- Pexp_match ---
 match e { x -> x };
 match e { 1 -> 0, x -> 1 };
 match e { 1 -> 0, x @ 2 -> 1 };
 match e { (1 | 2) -> 0, x -> 1 };
 match (1 + a) { (1 | 2) -> 0, x -> 1 };
+
+// TODO: guards
+// match e { x ? x > 0 -> 1, _ -> 0 };
 
 // TODO: Expected error
 // match (1 + a) { (1 | 2) -> 0, x -> 1 } 1;
@@ -50,10 +249,9 @@ match (1 + a) { (1 | 2) -> 0, x -> 1 };
 // TODO: Expected error
 // match e { };
 
-// TODO: Expected error
-// match e { };
-
 // --- Pexp_try ---
+// try e { E -> 1 };
+// try (f a + b) { Not_found -> 1, exn -> 2 };
 
 // --- Pexp_tuple ---
 (1, 2);
@@ -61,10 +259,18 @@ match (1 + a) { (1 | 2) -> 0, x -> 1 };
 (1, 2, 3, 4, 5, 6, 7, 8, 9, 10);
 (1, 2, (a, b));
 
+// TODO: labelled tuple elements
+// (~a: 1, 2);
+
 // --- Pexp_construct ---
+();
 [];
 True;
 False;
+
+// FIXME: constructor application parses as function application
+// Some 1;
+// C 1 2;
 
 // --- Pexp_variant ---
 #Green;
@@ -76,26 +282,40 @@ False;
 { ..p, x = 0, z = 1 };
 { ..p, x = 0 };
 
+// TODO: field punning
+// { ~x, y = 2 };
+
 // TODO: Expected error
 // { ..p };
 // ..p;
 
 // --- Pexp_field ---
+// FIXME: parses as a qualified identifier
+// r.x;
+// (f 1 2).x;
+
 // --- Pexp_setfield ---
+// r.x := 1;
+
 // --- Pexp_array ---
 {};
 {1};
 {1, 2, 3};
 
 // --- Pexp_ifthenelse ---
-// TODO
 if (a > 0) { e1 } else { e2 };
+
+// FIXME: parses as application
+// if (a > 0) { e1 };
+
+// TODO: multi-branch if
+// if { a > 0 -> e1, else -> e2 };
 
 // TODO: Expected error
 // if (a > 0) { e1 } else { e2 } 2;
 
 // --- Pexp_sequence  ---
-// TODO
+// FIXME: currently parses as array
 // {;};
 {1;};
 {1; 2; 3};
@@ -114,31 +334,45 @@ for (i = e1 to e2) {
   f ();
 };
 
-
 // --- Pexp_constraint  ---
+// FIXME: parses as application of ':'
+// (x : int);
+
 // --- Pexp_coerce  ---
+// (x :> int);
+// (x : int :> t);
+
 // --- Pexp_send  ---
 obj#meth1;
 //(#{ f = 1, g = 2 })#g;
 
 // --- Pexp_new  ---
+// new M.c;
+
 // --- Pexp_setinstvar  ---
+// x <- 2;
+
 // --- Pexp_override  ---
-// --- Pexp_struct_item  ---
+// #{ ..self, x = 1 };
+
+// --- Pexp_letmodule  ---
+// { mod X = { val x = 1 }; X.x };
+
+// --- Pexp_letexception  ---
+// { exn E; f () };
 
 // --- Pexp_assert  ---
 assert True;
 assert (a > 2);
 
-
 // --- Pexp_lazy  ---
-
 lazy 1;
 
 // TODO: Expected error
 // lazy 1 2;
 
 // --- Pexp_poly  ---
+// NOTE: method bodies only, no dedicated syntax.
 
 // --- Pexp_object  ---
 #{ };
@@ -151,13 +385,250 @@ lazy 1;
 //};
 
 // --- Pexp_newtype  ---
+// fn (type t) -> 1;
+
 // --- Pexp_pack  ---
+// (mod M);
+// (mod M : S);
+
+// --- Pexp_open  ---
+// M.(e);
+// { open M; a };
+
 // --- Pexp_letop  ---
+// let x <- m, x + 1;
+// let x <- (let*) m, x + 1;
+
 // --- Pexp_extension  ---
+// FIXME: parses as application
+// %id;
+// %id 2 3;
 
 // --- Pexp_unreachable ---
 // NOTE: fails to parse as ml syntax.
 // !;
 match a { _ -> !};
 
+// ===== value_description =====
+// external prim1 : t = "x";
+// sig S = { val x : int; };
 
+// ===== type_declaration =====
+
+// --- Ptype_abstract ---
+type t;
+type t[A];
+type t[A, B];
+type t[_];
+
+// FIXME: manifest type is dropped
+// type t = int;
+
+// TODO: nonrec declarations
+// type nonrec t = int;
+
+// --- Ptype_variant ---
+type t = { A };
+type t = { A int };
+type t = { A int string };
+type t = { A (int, string) };
+type t = { A | B };
+type t = { A | B int bool };
+
+// TODO: GADT constructors
+// type t = { A : int -> t };
+
+// --- Ptype_record ---
+// type t = { a : int };
+// type t = { a : int, b : bool };
+// type t = { a : mutable int };
+
+// --- Ptype_open ---
+// type t = {..};
+
+// ===== type_extension =====
+// type t += A;
+// type t += A int;
+// type t += A : t;
+
+// ===== type_exception =====
+// exn E;
+// exn E t1;
+// exn E = F;
+
+// ===== class language =====
+// TODO: no surface syntax yet.
+// - Pcty_constr, Pcty_signature, Pcty_arrow, Pcty_extension, Pcty_open
+// - Pctf_inherit, Pctf_val, Pctf_method, Pctf_constraint, Pctf_attribute,
+//   Pctf_extension
+// - Pcl_constr, Pcl_structure, Pcl_fun, Pcl_apply, Pcl_let, Pcl_constraint,
+//   Pcl_extension, Pcl_open
+// - Pcf_inherit, Pcf_val, Pcf_method, Pcf_constraint, Pcf_initializer,
+//   Pcf_attribute, Pcf_extension
+
+// ===== module_type =====
+
+// --- Pmty_ident ---
+// sig S = X;
+
+// --- Pmty_signature ---
+// sig S = {};
+// sig S = { val x : int; };
+
+// --- Pmty_functor ---
+// sig S = () -> {};
+// sig S = (M : MT) -> {};
+
+// --- Pmty_with ---
+// sig S = MT with type t = int;      // Pwith_type
+// sig S = MT with type t := int;     // Pwith_typesubst
+// sig S = MT with mod X = Y;         // Pwith_module
+// sig S = MT with mod X := Y;        // Pwith_modsubst
+// sig S = MT with sig X = Y;         // Pwith_modtype
+// sig S = MT with sig X := Y;        // Pwith_modtypesubst
+
+// --- Pmty_typeof ---
+// sig S = sig of M;
+
+// --- Pmty_extension ---
+// sig S = %id;
+
+// --- Pmty_alias ---
+
+// ===== signature_item =====
+
+// --- Psig_value ---
+// sig S = { val x : int; external f : int -> int = "f"; };
+
+// --- Psig_type ---
+// sig S = { type t; type t = int; };
+
+// --- Psig_typesubst ---
+// sig S = { type t := int; };
+
+// --- Psig_typext ---
+// sig S = { type t += A; };
+
+// --- Psig_exception ---
+// sig S = { exn E; };
+
+// --- Psig_module ---
+// sig S = { mod X : MT; };
+
+// --- Psig_modsubst ---
+// sig S = { mod X := M; };
+
+// --- Psig_recmodule ---
+// sig S = { mod rec X : S1, and Y : S2; };
+
+// --- Psig_modtype ---
+// sig S = { sig T = {}; sig T2; };
+
+// --- Psig_modtypesubst ---
+// sig S = { sig T := X; };
+
+// --- Psig_open ---
+// sig S = { open M; };
+
+// --- Psig_include ---
+// sig S = { include MT; };
+
+// --- Psig_class ---
+
+// --- Psig_class_type ---
+
+// --- Psig_attribute ---
+// sig S = { [@attr]; };
+
+// --- Psig_extension ---
+// sig S = { %id; };
+
+// ===== module_expr =====
+
+// --- Pmod_ident ---
+// mod M = X;
+
+// --- Pmod_structure ---
+// mod M = {};
+// mod M = { val x = 1 };
+
+// --- Pmod_functor ---
+// mod M = (X : S) -> {};
+// mod M (X : S) = {};
+
+// --- Pmod_apply ---
+// mod M = F X;
+
+// --- Pmod_apply_unit ---
+// mod M = F ();
+
+// --- Pmod_constraint ---
+// mod M = X : S;
+
+// --- Pmod_unpack ---
+// mod M = val e;
+
+// --- Pmod_extension ---
+// mod M = %id;
+
+// ===== structure_item =====
+
+// --- Pstr_eval ---
+1 + 2;
+
+// --- Pstr_value ---
+val f01 x = x + 1;
+val v01 : int = 1;
+val (v02, v03) = x;
+val (v04 @ ()) = x;
+val { v05 = 1, v06 : bool = 2 };
+
+// FIXME: plain binding wraps the body in a zero-param function
+// val v = 1;
+
+// TODO: recursive bindings
+// rec f x = f x;
+
+// --- Pstr_primitive ---
+// external prim1 : t = "x";
+
+// --- Pstr_type ---
+// NOTE: see the type_declaration section.
+type t;
+
+// --- Pstr_typext ---
+// type t += A;
+
+// --- Pstr_exception ---
+// exn E;
+
+// --- Pstr_module ---
+// mod X = {};
+
+// --- Pstr_recmodule ---
+// mod rec X = A, and Y = B;
+
+// --- Pstr_modtype ---
+// sig S = {};
+
+// --- Pstr_open ---
+// open M;
+// open {};
+
+// --- Pstr_class ---
+
+// --- Pstr_class_type ---
+
+// --- Pstr_include ---
+// include M;
+// include {};
+
+// --- Pstr_attribute ---
+// [@attr];
+
+// --- Pstr_extension ---
+// FIXME: parses as application
+// %id;
+
+// ===== toplevel_phrase =====
+// NOTE: Ptop_def is the file itself; Ptop_dir has no fl syntax.

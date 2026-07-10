@@ -1,3 +1,72 @@
+(* Mirror of Basic.fl in OCaml syntax: both files must produce the same
+   parsetree (see Basic_expected.sexp). Where fl produces a non-standard
+   tree (e.g. braces-sequences are arrays), this file reproduces it. *)
+
+(* ===== constant ===== *)
+
+1;;
+'x';;
+"hello";;
+
+(* ===== core_type ===== *)
+
+let typ_any : _ = x
+let typ_var : 'a = x
+let typ_arrow1 : int -> string = x
+let typ_arrow2 : int -> string -> bool = x
+let typ_arrow3 : (int -> bool) -> int = x
+let typ_tuple1 : int * string = x
+let typ_tuple2 : int * (string * bool) = x
+let typ_constr1 : int = x
+let typ_constr2 : M.t = x
+let typ_constr3 : M1.M2.t = x;;
+
+(* ===== pattern ===== *)
+
+match e with
+| _ -> 0
+;;
+
+match e with
+| x -> x
+;;
+
+match e with
+| 2 as x -> x
+;;
+
+match e with
+| 1 -> 0
+| 'a' -> 1
+| "abc" -> 2
+| _ -> 3
+;;
+
+match e with
+| a, b -> a
+;;
+
+match e with
+| a, b, c -> a
+;;
+
+match e with
+| None -> 0
+| _ -> 1
+;;
+
+match e with
+| C (a, b) -> 1
+| _ -> 0
+;;
+
+match e with
+| 1 | 2 -> 0
+| _ -> 1
+;;
+
+(* ===== expression ===== *)
+
 a;;
 X.a;;
 X1.X2.a;;
@@ -11,6 +80,14 @@ a + 1
 
 fun x -> x;;
 fun x y -> x + y;;
+fun () -> 1;;
+fun ~x -> x;;
+
+function
+| 1 -> 0
+| x -> 1
+;;
+
 f x;;
 f x1 x2;;
 f ~x1 x2;;
@@ -47,6 +124,7 @@ match 1 + a with
 a, b, 3;;
 1, 2, 3, 4, 5, 6, 7, 8, 9, 10;;
 1, 2, (a, b);;
+();;
 [];;
 true;;
 false;;
@@ -84,23 +162,6 @@ done
 ;;
 
 obj#meth1;;
-
-(* (object *)
-(*    method f = 1 *)
-(*    method g = 2 *)
-(* end *)
-(* ) *)
-(*   #g *)
-(* ;; *)
-
-(* Get operators *)
-a.[1];;
-a.{1};;
-a.(1);;
-a.!(1);;
-a.>++>(1);;
-
-(* Assert *)
 assert true;;
 assert (a > 2);;
 lazy 1;;
@@ -112,12 +173,33 @@ object
 end
 ;;
 
-(* object (x) end;; *)
-(* object (x : t) end;; *)
-
-(* object (x) *)
-(* method a = 1 *)
-(* method b = 2 *)
-(* end *)
 match a with
 | _ -> .
+;;
+
+(* ===== type_declaration ===== *)
+
+type nonrec t
+type nonrec 'a t
+type nonrec ('a, 'b) t
+type nonrec _ t
+type t = A
+type t = A of int
+type t = A of int * string
+type t = A of (int * string)
+type t = A | B
+type t = A | B of int * bool;;
+
+(* ===== structure_item ===== *)
+
+1 + 2;;
+
+let f01 x = x + 1
+let v01 : int = 1
+let v02, v03 = x
+let (() as v04) = x
+
+let v05 = 1
+and v06 : bool = 2
+
+type nonrec t
