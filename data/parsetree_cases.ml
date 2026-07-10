@@ -2,95 +2,95 @@
 
 (* [PStr of structure] *)
 
-let x = (1 [@attr let a = 1])
+let e = (1 [@attr let a = 1])
 
 (* [PSig of signature] *)
 
-let x = (1 [@attr: val a : int])
+let e = (1 [@attr: val a : int])
 
 (* [PTyp of core_type] *)
 
-let x = (1 [@attr: int -> int])
+let e = (1 [@attr: int -> int])
 
 (* [PPat of pattern * expression option] *)
 
-let x = (1 [@attr? C _ :: xs when x])
+let e = (1 [@attr? C _ :: xs when x])
 
 (* ====== core_type ====== *)
 
 (* [Ptyp_any] *)
 
-let x : _ = 1
+let e : _ = 1
 
 (* [Ptyp_var of string] *)
 
-let x : 'a = 1
+let e : 'a = 1
 
 (* [Ptyp_arrow of arg_label * core_type * core_type] *)
 
-let x : int -> string = fun _ -> "abc"
-let x : int -> string -> unit = fun _ _ -> ()
-let x : l:int -> string = fun ~l:_ -> "abc"
-let x : ?l:int -> unit -> string = fun ?l:_ () -> "abc"
-let x : int -> (string -> unit) -> bool = fun _ _ -> true
+let e : int -> string = fun _ -> "abc"
+let e : int -> string -> unit = fun _ _ -> ()
+let e : l:int -> string = fun ~l:_ -> "abc"
+let e : ?l:int -> unit -> string = fun ?l:_ () -> "abc"
+let e : int -> (string -> unit) -> bool = fun _ _ -> true
 
 (* [Ptyp_tuple of (string option * core_type) list] *)
 
-let x : int * bool = (1, true)
-let x : l1:int * bool = (~l1:1, true)
-let x : l1:int * l2:bool = (~l1:1, ~l2:true)
+let e : int * bool = (1, true)
+let e : l1:int * bool = (~l1:1, true)
+let e : l1:int * l2:bool = (~l1:1, ~l2:true)
 
 (* [Ptyp_constr of Longident.t loc * core_type list] *)
 
-let x : int = 1
-let x : int option = None
-let x : (int, string) result = Ok 1
+let e : int = 1
+let e : int option = None
+let e : (int, string) result = Ok 1
 
 (* [Ptyp_object of object_field list * closed_flag] *)
 
-let x : < x : int ; y : string > = x
-let x : < x : int ; y : string ; .. > = x
+let e : < x : int ; y : string > = x
+let e : < x : int ; y : string ; .. > = x
 
 (* [Ptyp_class of Longident.t loc * core_type list] *)
 
-let x : #cls1 = x
-let x : int #cls2 = x
-let x : (int, 'b) #t = x
+let e : #cls1 = x
+let e : int #cls2 = x
+let e : (int, 'b) #t = x
 
 (* [Ptyp_alias of core_type * string loc] *)
 
-let x : int as 'a = x
-let x : [> `A ] as 'a = x
+let e : int as 'a = x
+let e : [> `A ] as 'a = x
 
 (* [Ptyp_variant of row_field list * closed_flag * label list option] *)
 
-let x : [ `A ] = `A
-let x : [ `A | `B ] = `A
-let x : [< `A | `B ] = `A
-let x : [> `A | `B ] = `A
-let x : [< `A | `B | `C > `A `B ] = `A
-let x : [ | t1 ] = `A
-let x : [ t1 | `A ] = `A
-let x : [ `A of int ] = `A 1
-let x : [ `A of int & bool option & string ] = `A 1
-let x : [ `A of  & int ] = `A
+let e : [ `A ] = `A
+let e : [ `A | `B ] = `A
+let e : [< `A | `B ] = `A
+let e : [> `A | `B ] = `A
+let e : [< `A | `B | `C > `A `B ] = `A
+let e : [ | t1 ] = `A
+let e : [ t1 | `A ] = `A
+let e : [ `A of int ] = `A 1
+let e : [ `A of int & bool option & string ] = `A 1
+let e : [ `A of  & int ] = `A
 
 (* [Ptyp_poly of string loc list * core_type] *)
 
-let x : 'a. int = 1
-let x : 'a 'b. 'a -> int = x
+let e : 'a. int = 1
+let e : 'a 'b. 'a -> int = x
 
 (* [Ptyp_package of package_type] *)
 
-let x : (module Map.S) = x
+let e : (module M.S) = x
 
 (* [Ptyp_open of Longident.t loc * core_type] *)
 
-let x : M.(a) = x
+let e : M.(a) = x
 
 (* [Ptyp_extension of extension] *)
 
-let x : [%ext 1] = x;;
+let e : [%ext 1] = x;;
 
 (* ====== pattern ====== *)
 
@@ -247,30 +247,30 @@ a.A.B.x;;
 
 (* [Pexp_constant of constant] [Pconst_integer of string * char option] *)
 
-let x = 3
-let x = 3l
-let x = 3L
-let x = 3n
+let e = 3
+let e = 3l
+let e = 3L
+let e = 3n
 
 (* [Pexp_constant of constant] [Pconst_char of char] *)
 
-let x = 'c'
+let e = 'c'
 
 (* [Pexp_constant of constant] [Pconst_string of string * Location.t * string option] *)
 
-let x = "constant"
-let x = {|other constant|}
-let x = {delim|other constant|delim}
+let e = "abc"
+let e = {|abc|}
+let e = {delim|abc|delim}
 
 (* [Pexp_constant of constant] [Pconst_float of string * char option] *)
 
-let x = 3.4
-let x = 2e5
-let x = 1.4e-4;;
+let e = 3.4
+let e = 2e5
+let e = 1.4e-4;;
 
 (* [Pexp_let of rec_flag * value_binding list * expression] *)
 
-let x = 1 in
+let e = 1 in
 x
 ;;
 
@@ -278,7 +278,7 @@ let rec x = 1 in
 x
 ;;
 
-let x = 1 and y = 2 in
+let e = 1 and y = 2 in
 x + y
 ;;
 
@@ -507,7 +507,7 @@ let* x and+ y = 2 in
 
 (* [Pexp_extension of extension] *)
 
-let x = [%ext1];;
+let e = [%ext1];;
 
 (* [Pexp_unreachable] *)
 
@@ -665,7 +665,7 @@ class pcl_apply_2 = cls1 ~l:1 ?o:None
 (* [Pcl_let of rec_flag * value_binding list * class_expr] *)
 
 class pcl_let_1 =
-  let x = 1 in
+  let e = 1 in
   object end
 
 class pcl_let_2 =
@@ -944,7 +944,7 @@ module Pmod_ident_2 = X.Y
 module Pmod_structure_1 = struct end
 
 module Pmod_structure_2 = struct
-  let x = 1
+  let e = 1
 end
 
 (* [Pmod_functor of functor_parameter * module_expr] *)
@@ -983,28 +983,28 @@ module Pmod_extension_1 = [%ext];;
 
 (* [Pstr_value of rec_flag * value_binding list] *)
 
-let x = 1
-let rec pstr_value_2 () = pstr_value_2 ()
+let e = 1
+let rec x () = x ()
 
-let x = 1
-and pstr_value_4 = 2
+let e1 = 1
+and e2 = 2
 
 (* [Pstr_primitive of value_description] *)
 
-external pstr_primitive_1 : int -> int = "prim_stub"
-external pstr_primitive_2 : int -> int = "prim_stub" "prim_stub_native"
+external x : int -> int = "prim_stub"
+external x : int -> int = "prim_stub" "prim_stub_native"
 
 (* [Pstr_type of rec_flag * type_declaration list] *)
 
-type pstr_type_1 = int
-type nonrec pstr_type_2 = int
+type t = int
+type nonrec t = int
 
-type pstr_type_3 = A4 of pstr_type_4
-and pstr_type_4 = B4 of pstr_type_3
+type t1 = A4 of int
+and t2 = B4 of bool
 
 (* [Pstr_typext of type_extension] *)
 
-type ptype_open_1 += Pstr_typext_1 of bool
+type t += Pstr_typext_1 of bool
 
 (* [Pstr_exception of type_exception] *)
 
@@ -1017,12 +1017,12 @@ module Pstr_module_1 = struct end
 
 (* [Pstr_recmodule of module_binding list] *)
 
-module rec Pstr_recmodule_1 : S = struct end
-and Pstr_recmodule_2 : S = struct end
+module rec M1 : S = struct end
+and M2 : S = struct end
 
 (* [Pstr_modtype of module_type_declaration] *)
 
-module type Pstr_modtype_1 = sig end
+module type Mt = sig end
 
 (* [Pstr_open of open_declaration] *)
 
@@ -1030,54 +1030,54 @@ open M
 open! M.N
 
 open struct
-  let x = 1
+  let e = 1
 end
 
 (* [Pstr_class of class_declaration list] *)
 
-class pstr_class_1 = object end
-class virtual ['a] pstr_class_2 = object end
+class c = object end
+class virtual ['a] c = object end
 
-class pstr_class_3 = object end
+class c1 = object end
 
-and pstr_class_4 = object end
+and c2 = object end
 
 (* [Pstr_class_type of class_type_declaration list] *)
 
-class type pstr_class_type_1 = object end
+class type ct = object end
 
-class type pstr_class_type_2 = object end
+class type ct1 = object end
 
-and pstr_class_type_3 = object end
+and ct2 = object end
 
 (* [Pstr_include of include_declaration] *)
 
 include M
 
 include struct
-  let x = 1
+  let e = 1
 end
 
 (* [Pstr_attribute of attribute] *)
 
 [@@@attr]
-[@@@attr2 "payload"]
+[@@@attr "payload"]
 
 (* [Pstr_extension of extension * attributes] *)
 
 [%%ext]
-[%%ext2 let x = 1] [@@attr]
+[%%ext 1] [@@attr]
 
 (* [Pvc_constraint of {] *)
 
-let x : int = 1
-let x : 'a. 'a -> 'a = fun x -> x
-let x : type a. a -> a = fun x -> x
+let e : int = 1
+let e : 'a. 'a -> 'a = fun x -> x
+let e : type a. a -> a = fun x -> x
 
 (* [Pvc_coercion of {ground:core_type option; coercion:core_type }] *)
 
-let x :> int = x
-let x : t1 :> t2 = x;;
+let e :> int = x
+let e : t1 :> t2 = x;;
 
 (* ====== toplevel ====== *)
 #show
