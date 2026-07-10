@@ -6,21 +6,23 @@
    (run %{bin:fl} -i fl -o sexp %{deps}))))
 
 (rule
- (deps Basic.ml)
+ (deps Basic.fl)
  (action
   (with-stdout-to
-   Basic_ml_actual.sexp
-   (run %{bin:fl} -i ml -o sexp %{deps}))))
+   Basic_actual.ml
+   (pipe-stdout
+     (run %{bin:fl} -i fl -o ml %{deps})
+     (run %{bin:ocamlformat} --impl -)))))
+
+(rule
+ (alias runtest)
+ (action
+  (diff Basic_expected.ml Basic_actual.ml)))
 
 (rule
  (alias runtest)
  (action
   (diff Basic_expected.sexp Basic_fl_actual.sexp)))
-
-(rule
- (alias runtest)
- (action
-  (diff Basic_expected.sexp Basic_ml_actual.sexp)))
 
 ; (rule
 ;  (deps Either.fl)

@@ -16,4 +16,3 @@ space-around-lists = true
 dock-collection-brackets = true
 wrap-fun-args = true
 indicate-multiline-delimiters = closing-on-separate-line
-let-binding-spacing=double-semicolon

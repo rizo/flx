@@ -53,8 +53,7 @@ module Ml = struct
   end
 
   module Case = struct
-    let mk ?guard:pc_guard pc_lhs pc_rhs =
-      { Parsetree.pc_lhs; pc_guard; pc_rhs }
+    let mk ?guard:pc_guard pc_lhs pc_rhs = { Parsetree.pc_lhs; pc_guard; pc_rhs }
   end
 
   let mknoloc = Location.mknoloc
@@ -98,20 +97,24 @@ end = struct
 
   let rec eval (fl : Flx.t) =
     match fl with
+    (* _ *)
     | `id "_" -> Ml.Typ.any ~loc ()
+    (* None *)
     | `id id when is_upper_name id -> Ml.Typ.var ~loc (String.lowercase_ascii id)
+    (* int *)
     | `id id -> Ml.Typ.constr ~loc (Ml.ident_noloc [ id ]) []
     | `dot path_id -> Ml.Typ.constr ~loc (Ml.ident ~loc (eval_path path_id)) []
-    (* t[T1, T2] *)
+    (* result[A, int] *)
     | `seq [ `id id; `brackets args_fl ] ->
       Ml.Typ.constr ~loc (Ml.ident_noloc [ id ]) (eval_args args_fl)
+    (* Result.t[A, int] *)
     | `seq [ `dot path_id; `brackets args_fl ] ->
       Ml.Typ.constr ~loc (Ml.ident ~loc (eval_path path_id)) (eval_args args_fl)
+    (* (int, option[bool]) *)
     | `parens (`comma items) -> Ml.Typ.tuple ~loc (List.map eval_tuple_item items)
-    (* (T @ A) *)
-    | `infix (_, "@", typ_fl, `id alias) ->
-      Ml.Typ.alias ~loc (eval typ_fl)
-        (Ml.mkloc loc (String.lowercase_ascii alias))
+    (* (A @ int) *)
+    | `infix (_, "@", `id alias, typ_fl) ->
+      Ml.Typ.alias ~loc (eval typ_fl) (Ml.mkloc loc (String.lowercase_ascii alias))
     | `parens typ -> eval typ
     (* (~l: T1) -> T2 *)
     | `infix
@@ -140,20 +143,15 @@ end = struct
     | `braces (`pipe (first_row_fl :: rows_fl)) ->
       begin match first_row_fl with
       | `prefix (_, ">", row_fl) ->
-        Ml.Typ.variant ~loc
-          (List.map eval_row (row_fl :: rows_fl))
-          Asttypes.Open None
+        Ml.Typ.variant ~loc (List.map eval_row (row_fl :: rows_fl)) Asttypes.Open None
       | row_fl ->
-        Ml.Typ.variant ~loc
-          (List.map eval_row (row_fl :: rows_fl))
-          Asttypes.Closed None
+        Ml.Typ.variant ~loc (List.map eval_row (row_fl :: rows_fl)) Asttypes.Closed None
       end
     (* {> #A } *)
     | `braces (`prefix (_, ">", row_fl)) ->
       Ml.Typ.variant ~loc [ eval_row row_fl ] Asttypes.Open None
     (* { #A } *)
-    | `braces row_fl ->
-      Ml.Typ.variant ~loc [ eval_row row_fl ] Asttypes.Closed None
+    | `braces row_fl -> Ml.Typ.variant ~loc [ eval_row row_fl ] Asttypes.Closed None
     | _ -> wip "typ" fl
 
   and eval_args fl =
@@ -164,8 +162,7 @@ end = struct
   and eval_tuple_item fl =
     match fl with
     (* ~l: T *)
-    | `seq [ `prefix (_, "~", `postfix (_, ":", `id l)); typ_fl ] ->
-      (Some l, eval typ_fl)
+    | `seq [ `prefix (_, "~", `postfix (_, ":", `id l)); typ_fl ] -> (Some l, eval typ_fl)
     | typ_fl -> (None, eval typ_fl)
 
   and eval_row fl =
@@ -195,16 +192,11 @@ end = struct
     match fl with
     (* t1 :> t2 *)
     | `infix (_, ":>", ground_fl, coercion_fl) ->
-      Ml.Vc.coercion
-        ~ground:(E_core_type.eval ground_fl)
-        (E_core_type.eval coercion_fl)
+      Ml.Vc.coercion ~ground:(E_core_type.eval ground_fl) (E_core_type.eval coercion_fl)
     (* type [a] :: a -> a ("::" binds tighter than "->") *)
     | `infix
-        ( _,
-          "->",
-          `infix (_, "::", `seq [ `id "type"; `brackets vars_fl ], arg_fl),
-          ret_fl
-        ) ->
+        (_, "->", `infix (_, "::", `seq [ `id "type"; `brackets vars_fl ], arg_fl), ret_fl)
+      ->
       let typ_ml =
         Ml.Typ.arrow ~loc Asttypes.Nolabel (E_core_type.eval arg_fl)
           (E_core_type.eval ret_fl)
@@ -258,14 +250,8 @@ end = struct
       let pat = Ml.Pat.var ~loc (Ml.mkloc loc label) in
       [ Ml.Fun.val_param ~label:(Asttypes.Optional label) pat ]
     (* ~(o? as p) *)
-    | `prefix
-        ( _,
-          "~",
-          `parens (`seq [ `postfix (_, "?", `id label); `id "as"; pat_fl ])
-        ) ->
-      [ Ml.Fun.val_param ~label:(Asttypes.Optional label)
-          (E_pattern.eval pat_fl)
-      ]
+    | `prefix (_, "~", `parens (`seq [ `postfix (_, "?", `id label); `id "as"; pat_fl ]))
+      -> [ Ml.Fun.val_param ~label:(Asttypes.Optional label) (E_pattern.eval pat_fl) ]
     (* ~(o = default) *)
     | `prefix (_, "~", `parens (`infix (_, "=", `id label, default_fl))) ->
       let pat = Ml.Pat.var ~loc (Ml.mkloc loc label) in
@@ -275,19 +261,17 @@ end = struct
     | `prefix
         ( _,
           "~",
-          `parens
-            (`infix (_, "=", `seq [ `id label; `id "as"; pat_fl ], default_fl))
+          `parens (`infix (_, "=", `seq [ `id label; `id "as"; pat_fl ], default_fl))
         ) ->
       let default = E_expression.eval default_fl in
-      [ Ml.Fun.val_param ~label:(Asttypes.Optional label) ~default
-          (E_pattern.eval pat_fl)
+      [
+        Ml.Fun.val_param ~label:(Asttypes.Optional label) ~default (E_pattern.eval pat_fl);
       ]
     (* (type t u) *)
     | `parens (`seq (`id "type" :: names_fl)) ->
       List.map
         (function
-          | `id name ->
-            Ml.Fun.param (Parsetree.Pparam_newtype (Ml.mkloc loc name))
+          | `id name -> Ml.Fun.param (Parsetree.Pparam_newtype (Ml.mkloc loc name))
           | name_fl -> wip "newtype param" name_fl
           )
         names_fl
@@ -307,9 +291,8 @@ end = struct
     | `prefix (_, "~", `parens (`infix (_, "=", `id lbl, e_fl))) ->
       (Asttypes.Labelled lbl, E_expression.eval e_fl)
     (* ~(b? = e) *)
-    | `prefix
-        (_, "~", `parens (`infix (_, "=", `postfix (_, "?", `id lbl), e_fl)))
-      -> (Asttypes.Optional lbl, E_expression.eval e_fl)
+    | `prefix (_, "~", `parens (`infix (_, "=", `postfix (_, "?", `id lbl), e_fl))) ->
+      (Asttypes.Optional lbl, E_expression.eval e_fl)
     (* a *)
     | arg_fl -> (Asttypes.Nolabel, E_expression.eval arg_fl)
 
@@ -337,9 +320,7 @@ end = struct
     | `infix (_, "=", `id id_str, e_fl) ->
       let id_ml = Ml.mkloc loc id_str in
       let e_ml = E_expression.eval e_fl in
-      let field_kind =
-        Parsetree.Cfk_concrete (Asttypes.Fresh, Ml.Exp.poly e_ml None)
-      in
+      let field_kind = Parsetree.Cfk_concrete (Asttypes.Fresh, Ml.Exp.poly e_ml None) in
       Ast_helper.Cf.method_ id_ml Asttypes.Public field_kind
     (* m : T = e *)
     | `infix (_, "=", `infix (_, ":", `id id_str, typ_fl), e_fl) ->
@@ -362,8 +343,7 @@ end = struct
     let self_pat_ml, fields_fl =
       match fields_fl with
       (* as self *)
-      | `seq [ `id "as"; `id self ] :: rest ->
-        (Ml.Pat.var ~loc (Ml.mkloc loc self), rest)
+      | `seq [ `id "as"; `id self ] :: rest -> (Ml.Pat.var ~loc (Ml.mkloc loc self), rest)
       (* as self @ p *)
       | `infix (_, "@", `seq [ `id "as"; `id self ], pat_fl) :: rest ->
         (Ml.Pat.alias (E_pattern.eval pat_fl) (Ml.mkloc loc self), rest)
@@ -390,8 +370,7 @@ end = struct
       Ml.Exp.constant (Ml.Const.int ~suffix:suffix.[0] x)
     (* --- Pexp_construct --- *)
     (* C *)
-    | `id id when is_upper_name id ->
-      Ml.Exp.construct ~loc (Ml.ident_noloc [ id ]) None
+    | `id id when is_upper_name id -> Ml.Exp.construct ~loc (Ml.ident_noloc [ id ]) None
     (* C e / C e1 e2 ... *)
     | `seq (`id id :: args_fl) when is_upper_name id ->
       let arg_ml =
@@ -415,23 +394,20 @@ end = struct
           | `id field -> Ml.Exp.field ~loc acc_ml (Ml.ident_noloc [ field ])
           | `parens (`dot path_fl) ->
             Ml.Exp.field ~loc acc_ml (Ml.ident ~loc (eval_path path_fl))
-          | `parens (`id field) ->
-            Ml.Exp.field ~loc acc_ml (Ml.ident_noloc [ field ])
+          | `parens (`id field) -> Ml.Exp.field ~loc acc_ml (Ml.ident_noloc [ field ])
           | _ -> fail "invalid field access: %a" Flx.pp field_fl
-          )
+        )
         (E_expression.eval obj_fl) fields_fl
     | `parens (`seq []) -> eval_unit ()
     (* (items...,) _ *)
-    | `parens (`comma items) ->
-      Ml.Exp.tuple ~loc (List.map eval_tuple_item items)
+    | `parens (`comma items) -> Ml.Exp.tuple ~loc (List.map eval_tuple_item items)
     (* (_) *)
     | `parens exp -> E_expression.eval exp
     (* --- Pexp_let --- *)
     (* let a = 1, and b = 2, body / rec a = 1, body *)
     | `comma
-        (`infix (_, "=", `seq [ `id (("let" | "rec") as kw); pat_fl ], exp_fl)
-        :: rest_fl
-        ) ->
+        (`infix (_, "=", `seq [ `id (("let" | "rec") as kw); pat_fl ], exp_fl) :: rest_fl)
+      ->
       let mk_vb pat_fl exp_fl =
         Ml.Vb.mk (E_pattern.eval pat_fl) (E_expression.eval exp_fl)
       in
@@ -444,8 +420,7 @@ end = struct
       in
       let vbs, body = collect [ mk_vb pat_fl exp_fl ] rest_fl in
       let rec_flag =
-        if String.equal kw "rec" then Asttypes.Recursive
-        else Asttypes.Nonrecursive
+        if String.equal kw "rec" then Asttypes.Recursive else Asttypes.Nonrecursive
       in
       Ml.Exp.let_ rec_flag vbs body
     (* --- Pexp_lazy --- *)
@@ -453,8 +428,7 @@ end = struct
       let e1_ml = E_expression.eval e1 in
       Ml.Exp.lazy_ e1_ml
     (* --- Pexp_lazy --- *)
-    | `seq (`id "lazy" :: _e1 :: _extra) ->
-      fail "lazy requires a single expression"
+    | `seq (`id "lazy" :: _e1 :: _extra) -> fail "lazy requires a single expression"
     (* --- Pexp_match --- *)
     (* match e1 { cases..., } *)
     | `seq [ `id "match"; e1; `braces (`comma cases) ] ->
@@ -485,8 +459,7 @@ end = struct
       Ml.Exp.function_ ~loc params_ml None (Ml.Fun.body body_ml)
     (* fn { cases..., } *)
     | `seq [ `id "fn"; `braces (`comma cases) ] ->
-      Ml.Exp.function_ ~loc [] None
-        (Ml.Fun.cases (List.map Eval_case.eval cases))
+      Ml.Exp.function_ ~loc [] None (Ml.Fun.cases (List.map Eval_case.eval cases))
     (* | `infix (_, "->", `seq (`id "fn" :: args), body) -> *)
     (*   Eval_fun.exp (List.map (fun arg -> Positional arg) args) body *)
 
@@ -522,8 +495,7 @@ end = struct
     | `seq
         [
           `id "for";
-          `parens
-            (`infix (_, "=", pat_fl, `seq [ start_fl; `id "downto"; stop_fl ]));
+          `parens (`infix (_, "=", pat_fl, `seq [ start_fl; `id "downto"; stop_fl ]));
           `braces body_fl;
         ] ->
       let pat_ml = E_pattern.eval pat_fl in
@@ -586,9 +558,7 @@ end = struct
       Ml.Exp.variant ~loc id_str (Some e1_ml)
     (* --- Pexp_override --- *)
     (* #{ ..self, x = 1, ... } *)
-    | `prefix
-        (_, "#", `braces (`comma (`prefix (_, "..", `id "self") :: fields_fl)))
-      ->
+    | `prefix (_, "#", `braces (`comma (`prefix (_, "..", `id "self") :: fields_fl))) ->
       let eval_override_field fl =
         match fl with
         | `infix (_, "=", `id id_str, e_fl) ->
@@ -623,8 +593,7 @@ end = struct
       let f_ml = Ml.Exp.ident ~loc (Ml.ident_noloc [ op ]) in
       let e1_ml = E_expression.eval e1_fl in
       let e2_ml = E_expression.eval e2_fl in
-      Ml.Exp.apply ~loc f_ml
-        [ (Asttypes.Nolabel, e1_ml); (Asttypes.Nolabel, e2_ml) ]
+      Ml.Exp.apply ~loc f_ml [ (Asttypes.Nolabel, e1_ml); (Asttypes.Nolabel, e2_ml) ]
     (* -a *)
     | `prefix (_, op, e1_fl) ->
       let f_ml =
@@ -641,8 +610,7 @@ end = struct
       Ml.Exp.array items_ml
     (* --- Pexp_record --- *)
     (* { ..r, x = 1, ... } *)
-    | `braces (`comma (`prefix (_, "..", record_fl) :: (_ as record_fields_fl)))
-      ->
+    | `braces (`comma (`prefix (_, "..", record_fl) :: (_ as record_fields_fl))) ->
       let record_ml = E_expression.eval record_fl in
       let fields_ml = List.map eval_record_field record_fields_fl in
       Ml.Exp.record fields_ml (Some record_ml)
@@ -702,8 +670,7 @@ end = struct
     (* exn p *)
     | `seq [ `id "exn"; pat_fl ] -> Ml.Pat.exception_ ~loc (eval pat_fl)
     (* C *)
-    | `id id when is_upper_name id ->
-      Ml.Pat.construct ~loc (Ml.ident_noloc [ id ]) None
+    | `id id when is_upper_name id -> Ml.Pat.construct ~loc (Ml.ident_noloc [ id ]) None
     (* C arg *)
     | `seq [ `id id; arg_fl ] when is_upper_name id ->
       Ml.Pat.construct ~loc (Ml.ident_noloc [ id ]) (Some ([], eval arg_fl))
@@ -712,8 +679,7 @@ end = struct
       let types_list = [] in
       (* TODO: Closed? *)
       let args_ml =
-        Ml.Pat.tuple ~loc (List.map (fun arg -> (None, eval arg)) args_fl)
-          Closed
+        Ml.Pat.tuple ~loc (List.map (fun arg -> (None, eval arg)) args_fl) Closed
       in
       Ml.Pat.construct ~loc (Ml.ident_noloc [ id ]) (Some (types_list, args_ml))
     (* _ *)
@@ -722,8 +688,7 @@ end = struct
     | `id id -> Ml.Pat.var ~loc (Ml.mknoloc id)
     (* (1, 'x', a) *)
     (* TODO: Closed? *)
-    | `parens (`comma items) ->
-      Ml.Pat.tuple ~loc (List.map eval_tuple_item items) Closed
+    | `parens (`comma items) -> Ml.Pat.tuple ~loc (List.map eval_tuple_item items) Closed
     (* (_) *)
     | `parens pat -> eval pat
     (* (p : T) *)
@@ -740,8 +705,7 @@ end = struct
       let pat_ml = eval pat_fl in
       Ml.Pat.alias pat_ml (Ml.mkloc loc alias)
     (* err: x @ _ *)
-    | `infix (_, "@", _, _) ->
-      fail "invalid pattern alias: alias must be an identifier"
+    | `infix (_, "@", _, _) -> fail "invalid pattern alias: alias must be an identifier"
     (* M.(p) *)
     | `dot [ `id m; `parens pat_fl ] when is_upper_name m ->
       Ml.Pat.open_ ~loc (Ml.ident_noloc [ m ]) (eval pat_fl)
@@ -753,10 +717,16 @@ end = struct
         | `prefix (_, "~", `id _) | `infix (_, "=", `id _, _) -> true
         | _ -> false
       in
-      if List.exists is_record_field items_fl then (
+      if List.exists is_record_field items_fl then
         let closed =
-          if List.exists (function `id "_" -> true | _ -> false) items_fl then
-            Asttypes.Open
+          if
+            List.exists
+              (function
+                | `id "_" -> true
+                | _ -> false
+                )
+              items_fl
+          then Asttypes.Open
           else Asttypes.Closed
         in
         let fields =
@@ -772,7 +742,6 @@ end = struct
             items_fl
         in
         Ml.Pat.record ~loc fields closed
-      )
       else Ml.Pat.array ~loc (List.map eval items_fl)
     | `seq [ item ] -> eval item
     | _ -> wip "pat" fl
@@ -809,14 +778,12 @@ end = struct
   let eval fl =
     match fl with
     (* C *)
-    | `id name when is_upper_name name ->
-      Ml.Type.constructor ~loc (Ml.mkloc loc name)
+    | `id name when is_upper_name name -> Ml.Type.constructor ~loc (Ml.mkloc loc name)
     (* C { a : T, ... } *)
     | `seq [ `id name; `braces content_fl ] when is_upper_name name ->
       begin match E_type_declaration.eval_label_declarations content_fl with
       | Some fields ->
-        Ml.Type.constructor ~loc ~args:(Parsetree.Pcstr_record fields)
-          (Ml.mkloc loc name)
+        Ml.Type.constructor ~loc ~args:(Parsetree.Pcstr_record fields) (Ml.mkloc loc name)
       | None ->
         Ml.Type.constructor ~loc
           ~args:(Parsetree.Pcstr_tuple [ E_core_type.eval (`braces content_fl) ])
@@ -825,15 +792,12 @@ end = struct
     (* C ... *)
     | `seq (`id name :: args_fl) when is_upper_name name ->
       let args_ml = List.map E_core_type.eval args_fl in
-      Ml.Type.constructor ~loc ~args:(Parsetree.Pcstr_tuple args_ml)
-        (Ml.mkloc loc name)
+      Ml.Type.constructor ~loc ~args:(Parsetree.Pcstr_tuple args_ml) (Ml.mkloc loc name)
     | _ -> wip "constructor_declaration" fl
 end
 
 and E_type_declaration : sig
-  val eval :
-    Flx.t -> (Asttypes.rec_flag * Parsetree.type_declaration list) option
-
+  val eval : Flx.t -> (Asttypes.rec_flag * Parsetree.type_declaration list) option
   val eval_extension : Flx.t -> Parsetree.type_extension option
   val eval_exception : Flx.t -> Parsetree.type_exception option
   val eval_label_declarations : Flx.t -> Parsetree.label_declaration list option
@@ -859,9 +823,7 @@ end = struct
     | `infix (_, ":", `id name, `seq [ `id "mutable"; typ_fl ])
       when not (is_upper_name name) ->
       Some
-        (Ml.Type.field ~mut:Asttypes.Mutable (Ml.mkloc loc name)
-           (E_core_type.eval typ_fl)
-        )
+        (Ml.Type.field ~mut:Asttypes.Mutable (Ml.mkloc loc name) (E_core_type.eval typ_fl))
     | `infix (_, ":", `id name, typ_fl) when not (is_upper_name name) ->
       Some (Ml.Type.field (Ml.mkloc loc name) (E_core_type.eval typ_fl))
     | _ -> None
@@ -873,9 +835,7 @@ end = struct
       | item_fl -> [ item_fl ]
     in
     let fields = List.map eval_label_declaration items_fl in
-    if List.for_all Option.is_some fields then
-      Some (List.map Option.get fields)
-    else None
+    if List.for_all Option.is_some fields then Some (List.map Option.get fields) else None
 
   let eval_kind_and_manifest body_fl =
     match body_fl with
@@ -891,8 +851,7 @@ end = struct
           | `pipe constructors_fl -> constructors_fl
           | constructor_fl -> [ constructor_fl ]
         in
-        ( Parsetree.Ptype_variant
-            (List.map E_constructor_declaration.eval constructors_fl),
+        ( Parsetree.Ptype_variant (List.map E_constructor_declaration.eval constructors_fl),
           None
         )
       end
@@ -908,8 +867,7 @@ end = struct
     in
     match parts_fl with
     | [ `id name ] -> Some (nonrec_flag, name, [])
-    | [ `id name; `brackets params_fl ] ->
-      Some (nonrec_flag, name, eval_params params_fl)
+    | [ `id name; `brackets params_fl ] -> Some (nonrec_flag, name, eval_params params_fl)
     | _ -> None
 
   let eval_decl ?body_fl name params =
@@ -934,8 +892,7 @@ end = struct
     (* type t / type t[A] *)
     | `seq (`id "type" :: parts_fl) ->
       begin match eval_head parts_fl with
-      | Some (_, name, params) ->
-        Some (Asttypes.Nonrecursive, [ eval_decl name params ])
+      | Some (_, name, params) -> Some (Asttypes.Nonrecursive, [ eval_decl name params ])
       | None -> None
       end
     (* type t = _ *)
@@ -949,8 +906,7 @@ end = struct
       | None -> None
       end
     (* type t1 = _, and t2 = _ *)
-    | `comma (`infix (_, "=", `seq (`id "type" :: parts_fl), body_fl) :: and_fl)
-      ->
+    | `comma (`infix (_, "=", `seq (`id "type" :: parts_fl), body_fl) :: and_fl) ->
       begin match eval_head parts_fl with
       | Some (_, name, params) ->
         Some
@@ -968,8 +924,7 @@ end = struct
     | `seq [ `id name; `braces content_fl ] when is_upper_name name ->
       begin match eval_label_declarations content_fl with
       | Some fields ->
-        Ml.Te.decl ~loc ~args:(Parsetree.Pcstr_record fields)
-          (Ml.mkloc loc name)
+        Ml.Te.decl ~loc ~args:(Parsetree.Pcstr_record fields) (Ml.mkloc loc name)
       | None -> fail "invalid extension constructor: %a" Flx.pp fl
       end
     | `seq (`id name :: args_fl) when is_upper_name name ->
@@ -1019,8 +974,7 @@ end = struct
       let args =
         match args_fl with
         | [] -> None
-        | args_fl ->
-          Some (Parsetree.Pcstr_tuple (List.map E_core_type.eval args_fl))
+        | args_fl -> Some (Parsetree.Pcstr_tuple (List.map E_core_type.eval args_fl))
       in
       Some (Ml.Te.mk_exception (Ml.Te.decl ~loc ?args (Ml.mkloc loc name)))
     | _ -> None
@@ -1044,8 +998,7 @@ end = struct
   let rec eval (fl : Flx.t) =
     match fl with
     (* X *)
-    | `id name when is_upper_name name ->
-      Ml.Mod.ident ~loc (Ml.ident_noloc [ name ])
+    | `id name when is_upper_name name -> Ml.Mod.ident ~loc (Ml.ident_noloc [ name ])
     (* X.Y *)
     | `dot path_fl ->
       let path =
@@ -1071,7 +1024,7 @@ end = struct
           match arg_fl with
           | `parens (`seq []) -> Ml.Mod.apply_unit ~loc acc_ml
           | arg_fl -> Ml.Mod.apply ~loc acc_ml (eval arg_fl)
-          )
+        )
         (eval head_fl) args_fl
     (* %ext *)
     | `prefix (_, "%", `id name) ->
@@ -1087,8 +1040,7 @@ end = struct
   let eval (fl : Flx.t) =
     match fl with
     (* S *)
-    | `id name when is_upper_name name ->
-      Ml.Mty.ident ~loc (Ml.ident_noloc [ name ])
+    | `id name when is_upper_name name -> Ml.Mty.ident ~loc (Ml.ident_noloc [ name ])
     (* M.S *)
     | `dot path_fl ->
       let path =
@@ -1106,8 +1058,7 @@ end = struct
     | `braces (`semi items_fl) ->
       Ml.Mty.signature ~loc (List.map E_signature_item.eval items_fl)
     (* sig of ME *)
-    | `seq [ `id "sig"; `id "of"; me_fl ] ->
-      Ml.Mty.typeof_ ~loc (E_module_expr.eval me_fl)
+    | `seq [ `id "sig"; `id "of"; me_fl ] -> Ml.Mty.typeof_ ~loc (E_module_expr.eval me_fl)
     (* %ext *)
     | `prefix (_, "%", `id name) ->
       Ml.Mty.extension ~loc (Ml.mkloc loc name, Parsetree.PStr [])
@@ -1137,63 +1088,67 @@ end = struct
   let eval (fl : Flx.t) : Parsetree.signature_item =
     match E_type_declaration.eval fl with
     | Some (rec_flag, decls) -> Ml.Sig.type_ rec_flag decls
-    | None ->
-    match E_type_declaration.eval_extension fl with
-    | Some te -> Ml.Sig.type_extension te
-    | None ->
-    match E_type_declaration.eval_exception fl with
-    | Some exn -> Ml.Sig.exception_ exn
-    | None ->
-    match fl with
-    (* --- Psig_value --- *)
-    (* val x : T *)
-    | `infix (_, ":", `seq [ `id "val"; `id name ], typ_fl) ->
-      Ml.Sig.value (Ml.Val.mk (Ml.mkloc loc name) (E_core_type.eval typ_fl))
-    (* external f : T = "prim" *)
-    | `infix (_, "=", `infix (_, ":", `seq [ `id "external"; `id name ], typ_fl), `str prim)
-      ->
-      Ml.Sig.value
-        (Ml.Val.mk ~prim:[ prim ] (Ml.mkloc loc name) (E_core_type.eval typ_fl))
-    (* --- Psig_module --- *)
-    (* mod X : MT *)
-    | `infix (_, ":", `seq [ `id "mod"; `id name ], mt_fl) ->
-      Ml.Sig.module_
-        (Ml.Md.mk (Ml.mknoloc (Some name)) (E_module_type.eval mt_fl))
-    (* mod X = M *)
-    | `infix (_, "=", `seq [ `id "mod"; `id name ], `id target)
-      when is_upper_name target ->
-      Ml.Sig.module_
-        (Ml.Md.mk (Ml.mknoloc (Some name))
-           (Ml.Mty.alias ~loc (Ml.ident_noloc [ target ]))
+    | None -> (
+      match E_type_declaration.eval_extension fl with
+      | Some te -> Ml.Sig.type_extension te
+      | None -> (
+        match E_type_declaration.eval_exception fl with
+        | Some exn -> Ml.Sig.exception_ exn
+        | None -> (
+          match fl with
+          (* --- Psig_value --- *)
+          (* val x : T *)
+          | `infix (_, ":", `seq [ `id "val"; `id name ], typ_fl) ->
+            Ml.Sig.value (Ml.Val.mk (Ml.mkloc loc name) (E_core_type.eval typ_fl))
+          (* external f : T = "prim" *)
+          | `infix
+              ( _,
+                "=",
+                `infix (_, ":", `seq [ `id "external"; `id name ], typ_fl),
+                `str prim
+              ) ->
+            Ml.Sig.value
+              (Ml.Val.mk ~prim:[ prim ] (Ml.mkloc loc name) (E_core_type.eval typ_fl))
+          (* --- Psig_module --- *)
+          (* mod X : MT *)
+          | `infix (_, ":", `seq [ `id "mod"; `id name ], mt_fl) ->
+            Ml.Sig.module_ (Ml.Md.mk (Ml.mknoloc (Some name)) (E_module_type.eval mt_fl))
+          (* mod X = M *)
+          | `infix (_, "=", `seq [ `id "mod"; `id name ], `id target)
+            when is_upper_name target ->
+            Ml.Sig.module_
+              (Ml.Md.mk (Ml.mknoloc (Some name))
+                 (Ml.Mty.alias ~loc (Ml.ident_noloc [ target ]))
+              )
+          (* --- Psig_modtype --- *)
+          (* sig T *)
+          | `seq [ `id "sig"; `id name ] -> Ml.Sig.modtype (Ml.Mtd.mk (Ml.mkloc loc name))
+          (* sig U = MT *)
+          | `infix (_, "=", `seq [ `id "sig"; `id name ], mt_fl) ->
+            Ml.Sig.modtype (Ml.Mtd.mk ~typ:(E_module_type.eval mt_fl) (Ml.mkloc loc name))
+          (* --- Psig_open --- *)
+          | `seq [ `id "open"; path_fl ] ->
+            Ml.Sig.open_ (Ml.Opn.mk (eval_open_path path_fl))
+          | `seq [ `postfix (_, "!", `id "open"); path_fl ] ->
+            Ml.Sig.open_ (Ml.Opn.mk ~override:Asttypes.Override (eval_open_path path_fl))
+          (* --- Psig_include --- *)
+          | `seq (`id "include" :: mt_fl) ->
+            let mt_fl =
+              match mt_fl with
+              | [ mt_fl ] -> mt_fl
+              | mt_fl -> `seq mt_fl
+            in
+            Ml.Sig.include_ (Ml.Incl.mk (E_module_type.eval mt_fl))
+          (* --- Psig_attribute --- *)
+          | `brackets (`at (`id name, payload_fl)) ->
+            Ml.Sig.attribute (E_attribute.eval name payload_fl)
+          (* --- Psig_extension --- *)
+          | `prefix (_, "%", `id name) ->
+            Ml.Sig.extension (Ml.mkloc loc name, Parsetree.PStr [])
+          | _ -> wip "signature_item" fl
         )
-    (* --- Psig_modtype --- *)
-    (* sig T *)
-    | `seq [ `id "sig"; `id name ] -> Ml.Sig.modtype (Ml.Mtd.mk (Ml.mkloc loc name))
-    (* sig U = MT *)
-    | `infix (_, "=", `seq [ `id "sig"; `id name ], mt_fl) ->
-      Ml.Sig.modtype
-        (Ml.Mtd.mk ~typ:(E_module_type.eval mt_fl) (Ml.mkloc loc name))
-    (* --- Psig_open --- *)
-    | `seq [ `id "open"; path_fl ] ->
-      Ml.Sig.open_ (Ml.Opn.mk (eval_open_path path_fl))
-    | `seq [ `postfix (_, "!", `id "open"); path_fl ] ->
-      Ml.Sig.open_
-        (Ml.Opn.mk ~override:Asttypes.Override (eval_open_path path_fl))
-    (* --- Psig_include --- *)
-    | `seq (`id "include" :: mt_fl) ->
-      let mt_fl =
-        match mt_fl with
-        | [ mt_fl ] -> mt_fl
-        | mt_fl -> `seq mt_fl
-      in
-      Ml.Sig.include_ (Ml.Incl.mk (E_module_type.eval mt_fl))
-    (* --- Psig_attribute --- *)
-    | `brackets (`at (`id name, payload_fl)) ->
-      Ml.Sig.attribute (E_attribute.eval name payload_fl)
-    (* --- Psig_extension --- *)
-    | `prefix (_, "%", `id name) ->
-      Ml.Sig.extension (Ml.mkloc loc name, Parsetree.PStr [])
-    | _ -> wip "signature_item" fl
+      )
+    )
 end
 
 and E_structure_item : sig
@@ -1214,8 +1169,7 @@ end = struct
   (* val a = e / val f args... = e *)
   let eval_value_binding parts_fl exp_fl =
     match parts_fl with
-    | [ vb_pat_fl ] ->
-      Ml.Vb.mk (E_pattern.eval vb_pat_fl) (E_expression.eval exp_fl)
+    | [ vb_pat_fl ] -> Ml.Vb.mk (E_pattern.eval vb_pat_fl) (E_expression.eval exp_fl)
     | `id name :: args_fl ->
       let params_ml = List.concat_map E_expression.eval_function_params args_fl in
       let body_ml = Ml.Fun.body (E_expression.eval exp_fl) in
@@ -1229,110 +1183,113 @@ end = struct
   let eval (fl : Flx.t) : Parsetree.structure_item =
     match E_type_declaration.eval fl with
     | Some (rec_flag, decls) -> Ml.Str.type_ rec_flag decls
-    | None ->
-    match E_type_declaration.eval_extension fl with
-    | Some te -> Ml.Str.type_extension te
-    | None ->
-    match E_type_declaration.eval_exception fl with
-    | Some exn -> Ml.Str.exception_ exn
-    | None ->
-    match fl with
-    (* --- Pstr_value --- *)
-    (* val a = 1 / val f args... = body / rec ... *)
-    | `infix (_, "=", `seq (`id (("val" | "rec") as kw) :: parts_fl), exp_fl) ->
-      Ml.Str.value ~loc (rec_flag_of_keyword kw)
-        [ eval_value_binding parts_fl exp_fl ]
-    (* val a : int = 1 *)
-    | `infix
-        ( _,
-          "=",
-          `infix (_, ":", `seq [ `id (("val" | "rec") as kw); pat_fl ], vc_fl),
-          exp_fl
-        ) ->
-      let pat_ml = E_pattern.eval pat_fl in
-      let vc_ml = E_value_constraint.eval vc_fl in
-      let exp_ml = E_expression.eval exp_fl in
-      let vb_ml = Ml.Vb.mk ~value_constraint:vc_ml pat_ml exp_ml in
-      Ml.Str.value ~loc (rec_flag_of_keyword kw) [ vb_ml ]
-    (* val a :> int = 1 *)
-    | `infix
-        (_, "=", `infix (_, ":>", `seq [ `id "val"; pat_fl ], coercion_fl), exp_fl)
-      ->
-      let vc_ml = Ml.Vc.coercion (E_core_type.eval coercion_fl) in
-      let vb_ml =
-        Ml.Vb.mk ~value_constraint:vc_ml (E_pattern.eval pat_fl)
-          (E_expression.eval exp_fl)
-      in
-      Ml.Str.value ~loc Asttypes.Nonrecursive [ vb_ml ]
-    (* val { a = 1, b = 2 } *)
-    | `seq [ `id "val"; `braces (`comma vbl_fl) ] ->
-      let vbl_ml = List.map E_value_binding.eval vbl_fl in
-      Ml.Str.value ~loc Asttypes.Nonrecursive vbl_ml
-    (* val a = 1, and b = 2 *)
-    | `comma
-        (`infix (_, "=", `seq (`id (("val" | "rec") as kw) :: parts_fl), exp_fl)
-        :: and_fl
+    | None -> (
+      match E_type_declaration.eval_extension fl with
+      | Some te -> Ml.Str.type_extension te
+      | None -> (
+        match E_type_declaration.eval_exception fl with
+        | Some exn -> Ml.Str.exception_ exn
+        | None -> (
+          match fl with
+          (* --- Pstr_value --- *)
+          (* val a = 1 / val f args... = body / rec ... *)
+          | `infix (_, "=", `seq (`id (("val" | "rec") as kw) :: parts_fl), exp_fl) ->
+            Ml.Str.value ~loc (rec_flag_of_keyword kw)
+              [ eval_value_binding parts_fl exp_fl ]
+          (* val a : int = 1 *)
+          | `infix
+              ( _,
+                "=",
+                `infix (_, ":", `seq [ `id (("val" | "rec") as kw); pat_fl ], vc_fl),
+                exp_fl
+              ) ->
+            let pat_ml = E_pattern.eval pat_fl in
+            let vc_ml = E_value_constraint.eval vc_fl in
+            let exp_ml = E_expression.eval exp_fl in
+            let vb_ml = Ml.Vb.mk ~value_constraint:vc_ml pat_ml exp_ml in
+            Ml.Str.value ~loc (rec_flag_of_keyword kw) [ vb_ml ]
+          (* val a :> int = 1 *)
+          | `infix
+              (_, "=", `infix (_, ":>", `seq [ `id "val"; pat_fl ], coercion_fl), exp_fl)
+            ->
+            let vc_ml = Ml.Vc.coercion (E_core_type.eval coercion_fl) in
+            let vb_ml =
+              Ml.Vb.mk ~value_constraint:vc_ml (E_pattern.eval pat_fl)
+                (E_expression.eval exp_fl)
+            in
+            Ml.Str.value ~loc Asttypes.Nonrecursive [ vb_ml ]
+          (* val { a = 1, b = 2 } *)
+          | `seq [ `id "val"; `braces (`comma vbl_fl) ] ->
+            let vbl_ml = List.map E_value_binding.eval vbl_fl in
+            Ml.Str.value ~loc Asttypes.Nonrecursive vbl_ml
+          (* val a = 1, and b = 2 *)
+          | `comma
+              (`infix (_, "=", `seq (`id (("val" | "rec") as kw) :: parts_fl), exp_fl)
+              :: and_fl
+              )
+            when List.for_all
+                   (function
+                     | `infix (_, "=", `seq (`id "and" :: _), _) -> true
+                     | _ -> false
+                     )
+                   and_fl ->
+            let eval_and fl =
+              match fl with
+              | `infix (_, "=", `seq (`id "and" :: parts_fl), exp_fl) ->
+                eval_value_binding parts_fl exp_fl
+              | _ -> fail "invalid value binding: %a" Flx.pp fl
+            in
+            Ml.Str.value ~loc (rec_flag_of_keyword kw)
+              (eval_value_binding parts_fl exp_fl :: List.map eval_and and_fl)
+          (* --- Pstr_primitive --- *)
+          (* external x : T = "prim" *)
+          | `infix
+              (_, "=", `infix (_, ":", `seq [ `id "external"; `id name ], typ_fl), prim_fl)
+            ->
+            Ml.Str.primitive ~loc
+              (Ml.Val.mk ~prim:(eval_prim prim_fl) (Ml.mkloc loc name)
+                 (E_core_type.eval typ_fl)
+              )
+          (* --- Pstr_module --- *)
+          (* mod X = ME *)
+          | `infix (_, "=", `seq [ `id "mod"; `id name ], me_fl) ->
+            Ml.Str.module_ ~loc
+              (Ml.Mb.mk (Ml.mknoloc (Some name)) (E_module_expr.eval me_fl))
+          (* mod X : MT = ME *)
+          | `infix (_, "=", `infix (_, ":", `seq [ `id "mod"; `id name ], mt_fl), me_fl)
+            ->
+            Ml.Str.module_ ~loc
+              (Ml.Mb.mk (Ml.mknoloc (Some name))
+                 (Ml.Mod.constraint_ ~loc (E_module_expr.eval me_fl)
+                    (E_module_type.eval mt_fl)
+                 )
+              )
+          (* --- Pstr_modtype --- *)
+          (* sig S = MT *)
+          | `infix (_, "=", `seq [ `id "sig"; `id name ], mt_fl) ->
+            Ml.Str.modtype ~loc
+              (Ml.Mtd.mk ~typ:(E_module_type.eval mt_fl) (Ml.mkloc loc name))
+          (* --- Pstr_open --- *)
+          | `seq [ `id "open"; me_fl ] ->
+            Ml.Str.open_ ~loc (Ml.Opn.mk (E_module_expr.eval me_fl))
+          | `seq [ `postfix (_, "!", `id "open"); me_fl ] ->
+            Ml.Str.open_ ~loc
+              (Ml.Opn.mk ~override:Asttypes.Override (E_module_expr.eval me_fl))
+          (* --- Pstr_include --- *)
+          | `seq [ `id "include"; me_fl ] ->
+            Ml.Str.include_ ~loc (Ml.Incl.mk (E_module_expr.eval me_fl))
+          (* --- Pstr_attribute --- *)
+          | `brackets (`at (`id name, payload_fl)) ->
+            Ml.Str.attribute ~loc (E_attribute.eval name payload_fl)
+          (* --- Pstr_extension --- *)
+          | `prefix (_, "%", `id name) ->
+            Ml.Str.extension ~loc (Ml.mkloc loc name, Parsetree.PStr [])
+          | exp_fl ->
+            let exp_ml = E_expression.eval exp_fl in
+            Ml.Str.eval ~loc exp_ml
         )
-      when List.for_all
-             (function
-               | `infix (_, "=", `seq (`id "and" :: _), _) -> true
-               | _ -> false
-               )
-             and_fl ->
-      let eval_and fl =
-        match fl with
-        | `infix (_, "=", `seq (`id "and" :: parts_fl), exp_fl) ->
-          eval_value_binding parts_fl exp_fl
-        | _ -> fail "invalid value binding: %a" Flx.pp fl
-      in
-      Ml.Str.value ~loc (rec_flag_of_keyword kw)
-        (eval_value_binding parts_fl exp_fl :: List.map eval_and and_fl)
-    (* --- Pstr_primitive --- *)
-    (* external x : T = "prim" *)
-    | `infix
-        (_, "=", `infix (_, ":", `seq [ `id "external"; `id name ], typ_fl), prim_fl)
-      ->
-      Ml.Str.primitive ~loc
-        (Ml.Val.mk ~prim:(eval_prim prim_fl) (Ml.mkloc loc name)
-           (E_core_type.eval typ_fl)
-        )
-    (* --- Pstr_module --- *)
-    (* mod X = ME *)
-    | `infix (_, "=", `seq [ `id "mod"; `id name ], me_fl) ->
-      Ml.Str.module_ ~loc
-        (Ml.Mb.mk (Ml.mknoloc (Some name)) (E_module_expr.eval me_fl))
-    (* mod X : MT = ME *)
-    | `infix (_, "=", `infix (_, ":", `seq [ `id "mod"; `id name ], mt_fl), me_fl)
-      ->
-      Ml.Str.module_ ~loc
-        (Ml.Mb.mk (Ml.mknoloc (Some name))
-           (Ml.Mod.constraint_ ~loc (E_module_expr.eval me_fl)
-              (E_module_type.eval mt_fl)
-           )
-        )
-    (* --- Pstr_modtype --- *)
-    (* sig S = MT *)
-    | `infix (_, "=", `seq [ `id "sig"; `id name ], mt_fl) ->
-      Ml.Str.modtype ~loc
-        (Ml.Mtd.mk ~typ:(E_module_type.eval mt_fl) (Ml.mkloc loc name))
-    (* --- Pstr_open --- *)
-    | `seq [ `id "open"; me_fl ] ->
-      Ml.Str.open_ ~loc (Ml.Opn.mk (E_module_expr.eval me_fl))
-    | `seq [ `postfix (_, "!", `id "open"); me_fl ] ->
-      Ml.Str.open_ ~loc
-        (Ml.Opn.mk ~override:Asttypes.Override (E_module_expr.eval me_fl))
-    (* --- Pstr_include --- *)
-    | `seq [ `id "include"; me_fl ] ->
-      Ml.Str.include_ ~loc (Ml.Incl.mk (E_module_expr.eval me_fl))
-    (* --- Pstr_attribute --- *)
-    | `brackets (`at (`id name, payload_fl)) ->
-      Ml.Str.attribute ~loc (E_attribute.eval name payload_fl)
-    (* --- Pstr_extension --- *)
-    | `prefix (_, "%", `id name) ->
-      Ml.Str.extension ~loc (Ml.mkloc loc name, Parsetree.PStr [])
-    | exp_fl ->
-      let exp_ml = E_expression.eval exp_fl in
-      Ml.Str.eval ~loc exp_ml
+      )
+    )
 end
 
 module E_structure = struct
