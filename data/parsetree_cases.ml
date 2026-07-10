@@ -117,6 +117,7 @@ let ptyp_poly_1 : 'a. int = x
 let ptyp_poly_1 : 'a 'b. 'a -> int = x
 
 (** [Ptyp_package of package_type  (** [(module S)]. *)] *)
+
 let ptyp_package_1 : (module Map.S) = x
 
 (** [Ptyp_open of Longident.t loc * core_type (** [M.(T)] *)] *)
@@ -300,14 +301,27 @@ x + y
 
 (** [Pexp_function of function_param list * type_constraint option * function_body] *)
 
-fun x -> x;;
-fun x y -> x + y;;
-fun x y : int -> x + y;;
-fun ~x (int : int) : int -> x;;
-fun ~x (int : int) ?b c : int -> x;;
-fun ~x ?(b = 2) c : int -> x;;
-fun ~x ?b:(b2 = 2) c : int -> x;;
+fun x -> 1;;
+fun x : int -> 1;;
+fun ~l -> 1;;
+fun ~l:x2 -> 1;;
+fun ?o -> 1;;
+fun ?(o = 1) -> 1;;
+fun ?o:(o2 = 1) -> 1;;
 fun ~x ?b:(b2 : int = 2) c : int -> x;;
+fun (type t) -> 1;;
+fun (type t) a -> 1;;
+fun (type t u) -> 1;;
+
+function
+| 0 -> 1
+| _ -> 2
+;;
+
+fun x -> function
+ | 0 -> 1
+ | _ -> 2
+;;
 
 (** [Pexp_apply of expression * (arg_label * expression) list] *)
 
@@ -510,204 +524,575 @@ let x = [%ext1];;
 
 (** [Pexp_unreachable  (** [.] *)] *)
 
-match x with . -> 1;;
-
-(** [Pparam_val of arg_label * expression option * pattern] *)
-
-(** [Pparam_newtype of string loc] *)
-
-(** [Pfunction_body of expression] *)
-
-(** [Pfunction_cases of case list * Location.t * attributes] *)
-
-(** [Pconstraint of core_type] *)
-
-(** [Pcoerce of core_type option * core_type] *)
+match x with
+| _ -> .
+;;
 
 (** [Ptype_abstract] *)
 
+type ptype_abstract_1
+type ptype_abstract_2 = int
+type 'a ptype_abstract_3 = 'a option
+
 (** [Ptype_variant of constructor_declaration list] *)
+
+type ptype_variant_1 = A
+type ptype_variant_2 = B | C of int | D of int * bool
 
 (** [Ptype_record of label_declaration list  (** Invariant: non-empty list *)] *)
 
+type ptype_record_1 = { a : int }
+type ptype_record_2 = { b : int; mutable c : string }
+
 (** [Ptype_open] *)
+
+type ptype_open_1 = ..
 
 (** [Pcstr_tuple of core_type list] *)
 
+type pcstr_tuple_1 = A2 of int
+type pcstr_tuple_2 = B2 of int * bool
+type pcstr_tuple_3 = A2 : pcstr_tuple_3
+type pcstr_tuple_4 = A2 : int -> pcstr_tuple_4
+type 'a pcstr_tuple_5 = B2 : int * bool -> int pcstr_tuple_5
+
 (** [Pcstr_record of label_declaration list] *)
+
+type pcstr_record_1 = A3 of { a : int }
+type pcstr_record_2 = B3 of { a : int; mutable b : string }
+type pcstr_record_3 = A3 : { a : int } -> pcstr_record_3
 
 (** [Pext_decl of string loc list * constructor_arguments * core_type option] *)
 
+type ptype_open_1 += Pext_decl_1
+type ptype_open_1 += Pext_decl_2 of int
+type ptype_open_1 += Pext_decl_3 of { a : int }
+type ptype_open_1 += Pext_decl_4 : int -> ptype_open_1
+type ptype_open_1 += Pext_decl_4 : 'a. 'a * int -> ptype_open_1
+
 (** [Pext_rebind of Longident.t loc] *)
+
+type ptype_open_1 += Pext_rebind_1 = Pext_decl_1
+
+exception Pext_rebind_2 = Not_found
 
 (** [Pcty_constr of Longident.t loc * core_type list] *)
 
+class type pcty_constr_1 = ct1
+class type pcty_constr_2 = [int] ct2
+class type pcty_constr_3 = [int, string] M.ct3
+
 (** [Pcty_signature of class_signature  (** [object ... end] *)] *)
+
+class type pcty_signature_1 = object end
+
+class type pcty_signature_2 = object ('self)
+  method m : int
+end
 
 (** [Pcty_arrow of arg_label * core_type * class_type] *)
 
+class pcty_arrow_1 : int -> object end = fun _ -> object end
+class pcty_arrow_2 : l:int -> object end = fun ~l:_ -> object end
+class pcty_arrow_3 : ?l:int -> object end = fun ?l:_ -> object end
+
 (** [Pcty_extension of extension  (** [%id] *)] *)
+
+class type pcty_extension_1 = [%ext]
 
 (** [Pcty_open of open_description * class_type  (** [let open M in CT] *)] *)
 
+class type pcty_open_1 =
+  let open M in
+object
+  end
+
 (** [Pctf_inherit of class_type  (** [inherit CT] *)] *)
+
+class type pctf_inherit_1 = object
+  inherit ct1
+end
 
 (** [Pctf_val of (label loc * mutable_flag * virtual_flag * core_type)] *)
 
+class type pctf_val_1 = object
+  val v1 : int
+  val mutable v2 : int
+  val virtual v3 : int
+  val mutable virtual v4 : int
+end
+
 (** [Pctf_method of (label loc * private_flag * virtual_flag * core_type)] *)
+
+class type pctf_method_1 = object
+  method m1 : int
+  method private m2 : int
+  method virtual m3 : int
+  method private virtual m4 : int
+end
 
 (** [Pctf_constraint of (core_type * core_type)  (** [constraint T1 = T2] *)] *)
 
+class type ['a] pctf_constraint_1 = object
+  constraint 'a = int
+end
+
 (** [Pctf_attribute of attribute  (** [[\@\@\@id]] *)] *)
+
+class type pctf_attribute_1 = object
+  [@@@attr]
+end
 
 (** [Pctf_extension of extension  (** [[%%id]] *)] *)
 
+class type pctf_extension_1 = object
+  [%%ext]
+end
+
 (** [Pcl_constr of Longident.t loc * core_type list] *)
+
+class pcl_constr_1 = cls1
+class pcl_constr_2 = [int] cls2
+class pcl_constr_3 = [int, string] M.cls3
 
 (** [Pcl_structure of class_structure  (** [object ... end] *)] *)
 
+class pcl_structure_1 = object end
+
+class pcl_structure_2 =
+  object (self)
+    method m = 1
+  end
+
 (** [Pcl_fun of arg_label * expression option * pattern * class_expr] *)
+
+class pcl_fun_1 = fun x -> object end
+class pcl_fun_2 = fun ~l -> object end
+class pcl_fun_3 = fun ?(o = 1) x -> object end
 
 (** [Pcl_apply of class_expr * (arg_label * expression) list] *)
 
+class pcl_apply_1 = cls1 1
+class pcl_apply_2 = cls1 ~l:1 ?o:None
+
 (** [Pcl_let of rec_flag * value_binding list * class_expr] *)
+
+class pcl_let_1 =
+  let x = 1 in
+  object end
+
+class pcl_let_2 =
+  let rec x = 1 and y = 2 in
+  object end
 
 (** [Pcl_constraint of class_expr * class_type  (** [(CE : CT)] *)] *)
 
+class pcl_constraint_1 = (object end : object end)
+
 (** [Pcl_extension of extension  (** [[%id]] *)] *)
+
+class pcl_extension_1 = [%ext]
 
 (** [Pcl_open of open_description * class_expr  (** [let open M in CE] *)] *)
 
+class pcl_open_1 =
+  let open M in
+  object end
+
 (** [Pcf_inherit of override_flag * class_expr * string loc option] *)
+
+class pcf_inherit_1 =
+  object
+    inherit cls1
+  end
+
+class pcf_inherit_2 =
+  object
+    inherit cls1 as super
+  end
+
+class pcf_inherit_3 =
+  object
+    inherit! cls1
+  end
 
 (** [Pcf_val of (label loc * mutable_flag * class_field_kind)] *)
 
+class virtual pcf_val_1 =
+  object
+    val v1 = 1
+    val mutable v2 = 2
+    val! v3 = 3
+    val virtual v4 : int
+    val mutable virtual v5 : int
+  end
+
 (** [Pcf_method of (label loc * private_flag * class_field_kind)] *)
+
+class virtual pcf_method_1 =
+  object
+    method m1 = 1
+    method private m2 = 2
+    method! m3 = 3
+    method virtual m4 : int
+    method private virtual m5 : int
+  end
 
 (** [Pcf_constraint of (core_type * core_type)  (** [constraint T1 = T2] *)] *)
 
+class ['a] pcf_constraint_1 =
+  object
+    constraint 'a = int
+  end
+
 (** [Pcf_initializer of expression  (** [initializer E] *)] *)
+
+class pcf_initializer_1 =
+  object
+    initializer print_endline "init"
+  end
 
 (** [Pcf_attribute of attribute  (** [[\@\@\@id]] *)] *)
 
+class pcf_attribute_1 =
+  object
+    [@@@attr]
+  end
+
 (** [Pcf_extension of extension  (** [[%%id]] *)] *)
+
+class pcf_extension_1 =
+  object
+    [%%ext]
+  end
 
 (** [Pmty_ident of Longident.t loc  (** [Pmty_ident(S)] represents [S] *)] *)
 
+module type Pmty_ident_1 = S
+module type Pmty_ident_2 = M.S
+
 (** [Pmty_signature of signature  (** [sig ... end] *)] *)
+
+module type Pmty_signature_1 = sig end
+
+module type Pmty_signature_2 = sig
+  val x : int
+end
 
 (** [Pmty_functor of functor_parameter * module_type] *)
 
+module type Pmty_functor_1 = functor (X : S) -> sig end
+module type Pmty_functor_2 = functor (_ : S) -> sig end
+module type Pmty_functor_3 = functor () -> sig end
+module type Pmty_functor_4 = S -> sig end
+
 (** [Pmty_with of module_type * with_constraint list  (** [MT with ...] *)] *)
+
+module type Pmty_with_1 = S with type t = int
+module type Pmty_with_2 = S with type t = int and module M1 = M2
 
 (** [Pmty_typeof of module_expr  (** [module type of ME] *)] *)
 
+module type Pmty_typeof_1 = module type of M
+module type Pmty_typeof_2 = module type of struct end
+
 (** [Pmty_extension of extension  (** [[%id]] *)] *)
+
+module type Pmty_extension_1 = [%ext]
 
 (** [Pmty_alias of Longident.t loc  (** [(module M)] *)] *)
 
+module type Pmty_alias_1 = sig
+  module X = M
+end
+
 (** [Psig_value of value_description] *)
+
+module type Psig_value_1 = sig
+  val x : int
+  external f : int -> int = "f_stub"
+end
 
 (** [Psig_type of rec_flag * type_declaration list] *)
 
+module type Psig_type_1 = sig
+  type t
+  type nonrec u = int
+
+  type v = A of int
+  and w = { a : v }
+end
+
 (** [Psig_typesubst of type_declaration list] *)
+
+module type Psig_typesubst_1 = sig
+  type t := int
+end
 
 (** [Psig_typext of type_extension  (** [type t1 += ...] *)] *)
 
+module type Psig_typext_1 = sig
+  type t = ..
+  type t += A of int
+end
+
 (** [Psig_exception of type_exception  (** [exception C of T] *)] *)
+
+module type Psig_exception_1 = sig
+  exception E of int
+end
 
 (** [Psig_module of module_declaration  (** [module X = M] and [module X : MT] *)] *)
 
+module type Psig_module_1 = sig
+  module X : sig end
+  module Y = M
+end
+
 (** [Psig_modsubst of module_substitution  (** [module X := M] *)] *)
+
+module type Psig_modsubst_1 = sig
+  module X := M
+end
 
 (** [Psig_recmodule of module_declaration list] *)
 
+module type Psig_recmodule_1 = sig
+  module rec X : sig end
+  and Y : sig end
+end
+
 (** [Psig_modtype of module_type_declaration] *)
+
+module type Psig_modtype_1 = sig
+  module type T
+  module type U = sig end
+end
 
 (** [Psig_modtypesubst of module_type_declaration] *)
 
+module type Psig_modtypesubst_1 = sig
+  module type T := sig end
+end
+
 (** [Psig_open of open_description  (** [open X] *)] *)
+
+module type Psig_open_1 = sig
+  open M
+  open! M.N
+end
 
 (** [Psig_include of include_description  (** [include MT] *)] *)
 
+module type Psig_include_1 = sig
+  include S
+  include module type of M
+  include module type of M with type t = int
+  include module type of M with type t := int
+  include module type of M with type t = int and type u = string
+end
+
 (** [Psig_class of class_description list] *)
+
+module type Psig_class_1 = sig
+  class c1 : object end
+  class c2 : int -> object end
+  class ['a] c3 : object end
+  class virtual c4 : object end
+end
 
 (** [Psig_class_type of class_type_declaration list] *)
 
+module type Psig_class_type_1 = sig
+  class type ct1 = object end
+  class type ['a] ct2 = object end
+end
+
 (** [Psig_attribute of attribute  (** [[\@\@\@id]] *)] *)
+
+module type Psig_attribute_1 = sig
+  [@@@attr]
+end
 
 (** [Psig_extension of extension * attributes  (** [[%%id]] *)] *)
 
+module type Psig_extension_1 = sig
+  [%%ext]
+  [%%ext2] [@@attr]
+end
+
 (** [Pwith_type of Longident.t loc * type_declaration] *)
+
+module type Pwith_type_1 = S with type t = int
+module type Pwith_type_2 = S with type 'a t = 'a list
+module type Pwith_type_3 = S with type t = private int
 
 (** [Pwith_module of Longident.t loc * Longident.t loc] *)
 
+module type Pwith_module_1 = S with module M1 = M2
+
 (** [Pwith_modtype of Longident.t loc * module_type] *)
+
+module type Pwith_modtype_1 = S with module type T = sig end
 
 (** [Pwith_modtypesubst of Longident.t loc * module_type] *)
 
+module type Pwith_modtypesubst_1 = S with module type T := sig end
+
 (** [Pwith_typesubst of Longident.t loc * type_declaration] *)
+
+module type Pwith_typesubst_1 = S with type t := int
 
 (** [Pwith_modsubst of Longident.t loc * Longident.t loc] *)
 
+module type Pwith_modsubst_1 = S with module M1 := M2
+
 (** [Pmod_ident of Longident.t loc  (** [X] *)] *)
+
+module Pmod_ident_1 = X
+module Pmod_ident_2 = X.Y
 
 (** [Pmod_structure of structure  (** [struct ... end] *)] *)
 
+module Pmod_structure_1 = struct end
+
+module Pmod_structure_2 = struct
+  let x = 1
+end
+
 (** [Pmod_functor of functor_parameter * module_expr] *)
+
+module Pmod_functor_1 (X : S) = struct end
+module Pmod_functor_2 (_ : S) = struct end
+module Pmod_functor_3 () = struct end
+module Pmod_functor_4 = functor (X : S) -> struct end
 
 (** [Pmod_apply of module_expr * module_expr (** [ME1(ME2)] *)] *)
 
+module Pmod_apply_1 = F (X)
+module Pmod_apply_2 = F (X) (Y)
+
 (** [Pmod_apply_unit of module_expr (** [ME1()] *)] *)
+
+module Pmod_apply_unit_1 = F ()
 
 (** [Pmod_constraint of module_expr * module_type  (** [(ME : MT)] *)] *)
 
+module Pmod_constraint_1 : S = X
+module Pmod_constraint_2 : S = struct end
+
 (** [Pmod_unpack of expression  (** [(val E)] *)] *)
+
+module Pmod_unpack_1 = (val x)
+module Pmod_unpack_2 = (val x : S)
 
 (** [Pmod_extension of extension  (** [[%id]] *)] *)
 
+module Pmod_extension_1 = [%ext];;
+
 (** [Pstr_eval of expression * attributes  (** [E] *)] *)
+
+1 + 1;;
 
 (** [Pstr_value of rec_flag * value_binding list] *)
 
+let pstr_value_1 = 1
+let rec pstr_value_2 () = pstr_value_2 ()
+
+let pstr_value_3 = 1
+and pstr_value_4 = 2
+
 (** [Pstr_primitive of value_description] *)
+
+external pstr_primitive_1 : int -> int = "prim_stub"
+external pstr_primitive_2 : int -> int = "prim_stub" "prim_stub_native"
 
 (** [Pstr_type of rec_flag * type_declaration list] *)
 
+type pstr_type_1 = int
+type nonrec pstr_type_2 = int
+
+type pstr_type_3 = A4 of pstr_type_4
+and pstr_type_4 = B4 of pstr_type_3
+
 (** [Pstr_typext of type_extension  (** [type t1 += ...] *)] *)
+
+type ptype_open_1 += Pstr_typext_1 of bool
 
 (** [Pstr_exception of type_exception] *)
 
+exception Pstr_exception_1
+exception Pstr_exception_2 of int * string
+
 (** [Pstr_module of module_binding  (** [module X = ME] *)] *)
+
+module Pstr_module_1 = struct end
 
 (** [Pstr_recmodule of module_binding list] *)
 
+module rec Pstr_recmodule_1 : S = struct end
+and Pstr_recmodule_2 : S = struct end
+
 (** [Pstr_modtype of module_type_declaration  (** [module type S = MT] *)] *)
+
+module type Pstr_modtype_1 = sig end
 
 (** [Pstr_open of open_declaration  (** [open X] *)] *)
 
+open M
+open! M.N
+
+open struct
+  let pstr_open_1 = 1
+end
+
 (** [Pstr_class of class_declaration list] *)
+
+class pstr_class_1 = object end
+class virtual ['a] pstr_class_2 = object end
+
+class pstr_class_3 = object end
+
+and pstr_class_4 = object end
 
 (** [Pstr_class_type of class_type_declaration list] *)
 
+class type pstr_class_type_1 = object end
+
+class type pstr_class_type_2 = object end
+
+and pstr_class_type_3 = object end
+
 (** [Pstr_include of include_declaration  (** [include ME] *)] *)
+
+include M
+
+include struct
+  let pstr_include_1 = 1
+end
 
 (** [Pstr_attribute of attribute  (** [[\@\@\@id]] *)] *)
 
+[@@@attr]
+[@@@attr2 "payload"]
+
 (** [Pstr_extension of extension * attributes  (** [[%%id]] *)] *)
+
+[%%ext]
+[%%ext2 let x = 1] [@@attr]
 
 (** [Pvc_constraint of {] *)
 
+let pvc_constraint_1 : int = 1
+let pvc_constraint_2 : 'a. 'a -> 'a = fun x -> x
+let pvc_constraint_3 : type a. a -> a = fun x -> x
+
 (** [Pvc_coercion of {ground:core_type option; coercion:core_type }] *)
 
-(** [Ptop_def of structure] *)
+let pvc_coercion_1 :> int = x
+let pvc_coercion_2 : t1 :> t2 = x;;
 
-(** [Ptop_dir of toplevel_directive  (** [#use], [#load] ... *)] *)
+(* --- toplevel --- *)
+#show
 
-(** [Pdir_string of string] *)
-
-(** [Pdir_int of string * char option] *)
-
-(** [Pdir_ident of Longident.t] *)
-
-(** [Pdir_bool of bool] *)
+#use "file.ml"
