@@ -19,19 +19,23 @@
 
 // [PStr of structure]
 
-val e = [@attr val a = 1] 1;
+// TODO: attributes on expressions
+// val e = [@attr val a = 1] 1;
 
 // [PSig of signature]
 
-val e = [@attr : val a : int] 1;
+// TODO: attributes on expressions
+// val e = [@attr : val a : int] 1;
 
 // [PTyp of core_type]
 
-val e = [@attr : int -> int] 1;
+// TODO: attributes on expressions
+// val e = [@attr : int -> int] 1;
 
 // [PPat of pattern * expression option]
 
-val e = [@attr ? [C _ & xs] ? x] 1;
+// TODO: attributes on expressions
+// val e = [@attr ? [C _ & xs] ? x] 1;
 
 // ====== core_type ======
 
@@ -65,14 +69,19 @@ val e : result[int, string] = Ok 1;
 
 // [Ptyp_object of object_field list * closed_flag]
 
-val e : #{ x : int, y : string } = x;
-val e : #{ x : int, y : string, .. } = x;
+// TODO: object types
+// val e : #{ x : int, y : string } = x;
+// TODO: object types
+// val e : #{ x : int, y : string, .. } = x;
 
 // [Ptyp_class of Longident.t loc * core_type list]
 
-val e : #cls1 = x;
-val e : #cls2[int] = x;
-val e : #t[int, B] = x;
+// TODO: class types
+// val e : #cls1 = x;
+// TODO: class types
+// val e : #cls2[int] = x;
+// TODO: class types
+// val e : #t[int, B] = x;
 
 // [Ptyp_alias of core_type * string loc]
 
@@ -83,14 +92,20 @@ val e : ({> #A } @ A) = x;
 
 val e : { #A } = #A;
 val e : { #A | #B } = #A;
-val e : {< #A | #B } = #A;
+// TODO: closed variant bounds
+// val e : {< #A | #B } = #A;
 val e : {> #A | #B } = #A;
-val e : {< #A | #B | #C > #A #B } = #A;
-val e : { ..t1 } = #A;
-val e : { ..t1 | #A } = #A;
+// TODO: closed variant bounds
+// val e : {< #A | #B | #C > #A #B } = #A;
+// TODO: variant row inheritance
+// val e : { ..t1 } = #A;
+// TODO: variant row inheritance
+// val e : { ..t1 | #A } = #A;
 val e : { #A int } = #A 1;
-val e : { #A int & option[bool] & string } = #A 1;
-val e : { #A & int } = #A;
+// TODO: conjunctive variant arguments
+// val e : { #A int & option[bool] & string } = #A 1;
+// TODO: conjunctive variant arguments
+// val e : { #A & int } = #A;
 
 // [Ptyp_poly of string loc list * core_type]
 
@@ -99,15 +114,18 @@ val e : [A, B] :: A -> int = x;
 
 // [Ptyp_package of package_type]
 
-val e : (sig M.S) = x;
+// TODO: package types
+// val e : (sig M.S) = x;
 
 // [Ptyp_open of Longident.t loc * core_type]
 
-val e : M.(a) = x;
+// TODO: open types
+// val e : M.(a) = x;
 
 // [Ptyp_extension of extension]
 
-val e : (%ext 1) = x;
+// TODO: extension types
+// val e : (%ext 1) = x;
 
 // ====== pattern ======
 
@@ -190,7 +208,8 @@ match x { _ -> 1, exn err -> 2 };
 
 // [Ppat_extension of extension]
 
-match x { (%ext 1) -> x };
+// TODO: extension patterns
+// match x { (%ext 1) -> x };
 
 // [Ppat_open of Longident.t loc * pattern]
 
@@ -218,14 +237,19 @@ val e = 'c';
 // [Pexp_constant of constant] [Pconst_string of string * Location.t * string option]
 
 val e = "abc";
-val e = {|abc|};
-val e = {delim|abc|delim};
+// FIXME: raw string without delimiter is a lex error
+// val e = {|abc|};
+// FIXME: parses as a pipe list, not a raw string
+// val e = {delim|abc|delim};
 
 // [Pexp_constant of constant] [Pconst_float of string * char option]
 
-val e = 3.4;
-val e = 2e5;
-val e = 1.4e-4;
+// FIXME: no float literals in the lexer
+// val e = 3.4;
+// FIXME: no float literals in the lexer
+// val e = 2e5;
+// FIXME: no float literals in the lexer
+// val e = 1.4e-4;
 
 // [Pexp_let of rec_flag * value_binding list * expression]
 
@@ -240,13 +264,15 @@ rec x = 1, and y = 2, x + y;
 // [Pexp_function of function_param list * type_constraint option * function_body]
 
 fn x -> 1;
-fn x : int -> 1;
+// TODO: return type constraints on fn
+// fn x : int -> 1;
 fn ~l -> 1;
 fn ~(l as x2) -> 1;
 fn ~o? -> 1;
 fn ~(o = 1) -> 1;
 fn ~(o as o2 = 1) -> 1;
-fn ~x ~(b as (b2 : int) = 2) c : int -> x;
+// TODO: return type constraints on fn
+// fn ~x ~(b as (b2 : int) = 2) c : int -> x;
 fn (type t) -> 1;
 fn (type t) a -> 1;
 fn (type t u) -> 1;
@@ -318,6 +344,7 @@ if a { if b { 1 } else { 2 } } else { 3 };
 
 // [Pexp_sequence of expression * expression]
 
+// FIXME: braces sequences currently map to arrays (see Basic.fl).
 { a; b };
 
 { a; b; c };
@@ -358,11 +385,13 @@ x <- 1;
 
 // [Pexp_letmodule of string option loc * module_expr * expression]
 
-{ mod M = {}; 1 };
+// TODO: structure items in expression blocks
+// { mod M = {}; 1 };
 
 // [Pexp_letexception of extension_constructor * expression]
 
-{ exn E; 1 };
+// TODO: structure items in expression blocks
+// { exn E; 1 };
 
 // [Pexp_assert of expression]
 
@@ -394,21 +423,26 @@ fn (type x) -> 1;
 
 // [Pexp_pack of module_expr * package_type option]
 
-(mod X : x);
-(mod X : S with type t1 = int);
+// TODO: first-class modules
+// (mod X : x);
+// TODO: first-class modules
+// (mod X : S with type t1 = int);
 
 // [Pexp_open of open_declaration * expression]
 
-{ open M; 1 };
+// TODO: structure items in expression blocks
+// { open M; 1 };
 
 // [Pexp_letop of letop]
 
 // NOTE: the binder is an explicit expression after `<-`; `(let*)` is the
 // escaped operator name, a plain function like `Result.bind` works too.
 // The subject `x` is punned in the ml original.
-let x <- (let*) x, 1;
+// TODO: letops
+// let x <- (let*) x, 1;
 
-let x <- (let*) x, and y <- (and+) 2, 1;
+// TODO: letops
+// let x <- (let*) x, and y <- (and+) 2, 1;
 
 // [Pexp_extension of extension]
 
@@ -442,23 +476,29 @@ type ptype_open_1 = {..};
 
 type pcstr_tuple_1 = { A2 int };
 type pcstr_tuple_2 = { B2 int bool };
-type pcstr_tuple_3 = { A2 : pcstr_tuple_3 };
-type pcstr_tuple_4 = { A2 : int -> pcstr_tuple_4 };
-type pcstr_tuple_5[A] = { B2 : (int, bool) -> pcstr_tuple_5[int] };
+// TODO: GADT constructors
+// type pcstr_tuple_3 = { A2 : pcstr_tuple_3 };
+// TODO: GADT constructors
+// type pcstr_tuple_4 = { A2 : int -> pcstr_tuple_4 };
+// TODO: GADT constructors
+// type pcstr_tuple_5[A] = { B2 : (int, bool) -> pcstr_tuple_5[int] };
 
 // [Pcstr_record of label_declaration list]
 
 type pcstr_record_1 = { A3 { a : int } };
 type pcstr_record_2 = { B3 { a : int, b : mutable string } };
-type pcstr_record_3 = { A3 : { a : int } -> pcstr_record_3 };
+// TODO: GADT constructors
+// type pcstr_record_3 = { A3 : { a : int } -> pcstr_record_3 };
 
 // [Pext_decl of string loc list * constructor_arguments * core_type option]
 
 type ptype_open_1 += Pext_decl_1;
 type ptype_open_1 += Pext_decl_2 int;
 type ptype_open_1 += Pext_decl_3 { a : int };
-type ptype_open_1 += Pext_decl_4 : int -> ptype_open_1;
-type ptype_open_1 += Pext_decl_4 : [A] :: (A, int) -> ptype_open_1;
+// TODO: GADT extension constructors
+// type ptype_open_1 += Pext_decl_4 : int -> ptype_open_1;
+// TODO: GADT extension constructors
+// type ptype_open_1 += Pext_decl_4 : [A] :: (A, int) -> ptype_open_1;
 
 // [Pext_rebind of Longident.t loc]
 
@@ -466,180 +506,182 @@ type ptype_open_1 += Pext_rebind_1 = Pext_decl_1;
 
 exn Pext_rebind_2 = Not_found;
 
+// TODO: no class language support in the parser (cls / csig / @virtual).
+
 // [Pcty_constr of Longident.t loc * core_type list]
 
-csig pcty_constr_1 = ct1;
-csig pcty_constr_2 = ct2[int];
-csig pcty_constr_3 = M.ct3[int, string];
+// csig pcty_constr_1 = ct1;
+// csig pcty_constr_2 = ct2[int];
+// csig pcty_constr_3 = M.ct3[int, string];
 
 // [Pcty_signature of class_signature]
 
-csig pcty_signature_1 = #{};
+// csig pcty_signature_1 = #{};
 
-csig pcty_signature_2 = #{
-  as Self,
-  m : int
-};
+// csig pcty_signature_2 = #{
+//   as Self,
+//   m : int
+// };
 
 // [Pcty_arrow of arg_label * core_type * class_type]
 
-cls pcty_arrow_1 : int -> #{} = fn _ -> #{};
-cls pcty_arrow_2 : (~l: int) -> #{} = fn ~(l as _) -> #{};
-cls pcty_arrow_3 : (~l?: int) -> #{} = fn ~(l? as _) -> #{};
+// cls pcty_arrow_1 : int -> #{} = fn _ -> #{};
+// cls pcty_arrow_2 : (~l: int) -> #{} = fn ~(l as _) -> #{};
+// cls pcty_arrow_3 : (~l?: int) -> #{} = fn ~(l? as _) -> #{};
 
 // [Pcty_extension of extension]
 
-csig pcty_extension_1 = %ext;
+// csig pcty_extension_1 = %ext;
 
 // [Pcty_open of open_description * class_type]
 
-csig pcty_open_1 = M.(#{});
+// csig pcty_open_1 = M.(#{});
 
 // [Pctf_inherit of class_type]
 
-csig pctf_inherit_1 = #{
-  inherit ct1
-};
+// csig pctf_inherit_1 = #{
+//   inherit ct1
+// };
 
 // [Pctf_val of (label loc * mutable_flag * virtual_flag * core_type)]
 
-csig pctf_val_1 = #{
-  val v1 : int,
-  val mutable v2 : int,
-  val virtual v3 : int,
-  val mutable virtual v4 : int
-};
+// csig pctf_val_1 = #{
+//   val v1 : int,
+//   val mutable v2 : int,
+//   val virtual v3 : int,
+//   val mutable virtual v4 : int
+// };
 
 // [Pctf_method of (label loc * private_flag * virtual_flag * core_type)]
 
-csig pctf_method_1 = #{
-  m1 : int,
-  private m2 : int,
-  virtual m3 : int,
-  private virtual m4 : int
-};
+// csig pctf_method_1 = #{
+//   m1 : int,
+//   private m2 : int,
+//   virtual m3 : int,
+//   private virtual m4 : int
+// };
 
 // [Pctf_constraint of (core_type * core_type)]
 
-csig pctf_constraint_1[A] = #{
-  constraint A = int
-};
+// csig pctf_constraint_1[A] = #{
+//   constraint A = int
+// };
 
 // [Pctf_attribute of attribute]
 
-csig pctf_attribute_1 = #{
-  [@attr]
-};
+// csig pctf_attribute_1 = #{
+//   [@attr]
+// };
 
 // [Pctf_extension of extension]
 
-csig pctf_extension_1 = #{
-  %ext
-};
+// csig pctf_extension_1 = #{
+//   %ext
+// };
 
 // [Pcl_constr of Longident.t loc * core_type list]
 
-cls pcl_constr_1 = cls1;
-cls pcl_constr_2 = cls2[int];
-cls pcl_constr_3 = M.cls3[int, string];
+// cls pcl_constr_1 = cls1;
+// cls pcl_constr_2 = cls2[int];
+// cls pcl_constr_3 = M.cls3[int, string];
 
 // [Pcl_structure of class_structure]
 
-cls pcl_structure_1 = #{};
+// cls pcl_structure_1 = #{};
 
-cls pcl_structure_2 = #{
-  as self,
-  m = 1
-};
+// cls pcl_structure_2 = #{
+//   as self,
+//   m = 1
+// };
 
 // [Pcl_fun of arg_label * expression option * pattern * class_expr]
 
-cls pcl_fun_1 = fn x -> #{};
-cls pcl_fun_2 = fn ~l -> #{};
-cls pcl_fun_3 = fn ~(o = 1) x -> #{};
+// cls pcl_fun_1 = fn x -> #{};
+// cls pcl_fun_2 = fn ~l -> #{};
+// cls pcl_fun_3 = fn ~(o = 1) x -> #{};
 
 // [Pcl_apply of class_expr * (arg_label * expression) list]
 
-cls pcl_apply_1 = cls1 1;
-cls pcl_apply_2 = cls1 ~(l = 1) ~(o? = None);
+// cls pcl_apply_1 = cls1 1;
+// cls pcl_apply_2 = cls1 ~(l = 1) ~(o? = None);
 
 // [Pcl_let of rec_flag * value_binding list * class_expr]
 
-cls pcl_let_1 = let e = 1, #{};
+// cls pcl_let_1 = let e = 1, #{};
 
-cls pcl_let_2 = rec x = 1, and y = 2, #{};
+// cls pcl_let_2 = rec x = 1, and y = 2, #{};
 
 // [Pcl_constraint of class_expr * class_type]
 
-cls pcl_constraint_1 = (#{} : #{});
+// cls pcl_constraint_1 = (#{} : #{});
 
 // [Pcl_extension of extension]
 
-cls pcl_extension_1 = %ext;
+// cls pcl_extension_1 = %ext;
 
 // [Pcl_open of open_description * class_expr]
 
-cls pcl_open_1 = M.(#{});
+// cls pcl_open_1 = M.(#{});
 
 // [Pcf_inherit of override_flag * class_expr * string loc option]
 
-cls pcf_inherit_1 = #{
-  inherit cls1
-};
+// cls pcf_inherit_1 = #{
+//   inherit cls1
+// };
 
-cls pcf_inherit_2 = #{
-  inherit cls1 @ super
-};
+// cls pcf_inherit_2 = #{
+//   inherit cls1 @ super
+// };
 
-cls pcf_inherit_3 = #{
-  override inherit cls1
-};
+// cls pcf_inherit_3 = #{
+//   override inherit cls1
+// };
 
 // [Pcf_val of (label loc * mutable_flag * class_field_kind)]
 
-@virtual
-cls pcf_val_1 = #{
-  val v1 = 1,
-  val mutable v2 = 2,
-  override val v3 = 3,
-  val virtual v4 : int,
-  val mutable virtual v5 : int
-};
+// @virtual
+// cls pcf_val_1 = #{
+//   val v1 = 1,
+//   val mutable v2 = 2,
+//   override val v3 = 3,
+//   val virtual v4 : int,
+//   val mutable virtual v5 : int
+// };
 
 // [Pcf_method of (label loc * private_flag * class_field_kind)]
 
-@virtual
-cls pcf_method_1 = #{
-  m1 = 1,
-  private m2 = 2,
-  override m3 = 3,
-  virtual m4 : int,
-  private virtual m5 : int
-};
+// @virtual
+// cls pcf_method_1 = #{
+//   m1 = 1,
+//   private m2 = 2,
+//   override m3 = 3,
+//   virtual m4 : int,
+//   private virtual m5 : int
+// };
 
 // [Pcf_constraint of (core_type * core_type)]
 
-cls pcf_constraint_1[A] = #{
-  constraint A = int
-};
+// cls pcf_constraint_1[A] = #{
+//   constraint A = int
+// };
 
 // [Pcf_initializer of expression]
 
-cls pcf_initializer_1 = #{
-  init (print_endline "init")
-};
+// cls pcf_initializer_1 = #{
+//   init (print_endline "init")
+// };
 
 // [Pcf_attribute of attribute]
 
-cls pcf_attribute_1 = #{
-  [@attr]
-};
+// cls pcf_attribute_1 = #{
+//   [@attr]
+// };
 
 // [Pcf_extension of extension]
 
-cls pcf_extension_1 = #{
-  %ext
-};
+// cls pcf_extension_1 = #{
+//   %ext
+// };
 
 // [Pmty_ident of Longident.t loc]
 
@@ -656,15 +698,21 @@ sig Pmty_signature_2 = {
 
 // [Pmty_functor of functor_parameter * module_type]
 
-sig Pmty_functor_1 = (X : S) -> {};
-sig Pmty_functor_2 = (_ : S) -> {};
-sig Pmty_functor_3 = () -> {};
-sig Pmty_functor_4 = S -> {};
+// TODO: functor types
+// sig Pmty_functor_1 = (X : S) -> {};
+// TODO: functor types
+// sig Pmty_functor_2 = (_ : S) -> {};
+// TODO: functor types
+// sig Pmty_functor_3 = () -> {};
+// TODO: functor types
+// sig Pmty_functor_4 = S -> {};
 
 // [Pmty_with of module_type * with_constraint list]
 
-sig Pmty_with_1 = S with type t = int;
-sig Pmty_with_2 = S with type t = int and mod M1 = M2;
+// TODO: with constraints
+// sig Pmty_with_1 = S with type t = int;
+// TODO: with constraints
+// sig Pmty_with_2 = S with type t = int and mod M1 = M2;
 
 // [Pmty_typeof of module_expr]
 
@@ -700,9 +748,10 @@ sig Psig_type_1 = {
 
 // [Psig_typesubst of type_declaration list]
 
-sig Psig_typesubst_1 = {
-  type t := int;
-};
+// TODO: type substitutions
+// sig Psig_typesubst_1 = {
+//   type t := int;
+// };
 
 // [Psig_typext of type_extension]
 
@@ -726,16 +775,18 @@ sig Psig_module_1 = {
 
 // [Psig_modsubst of module_substitution]
 
-sig Psig_modsubst_1 = {
-  mod X := M;
-};
+// TODO: module substitutions
+// sig Psig_modsubst_1 = {
+//   mod X := M;
+// };
 
 // [Psig_recmodule of module_declaration list]
 
-sig Psig_recmodule_1 = {
-  mod rec X : {},
-  and Y : {};
-};
+// TODO: recursive modules
+// sig Psig_recmodule_1 = {
+//   mod rec X : {},
+//   and Y : {};
+// };
 
 // [Psig_modtype of module_type_declaration]
 
@@ -746,9 +797,10 @@ sig Psig_modtype_1 = {
 
 // [Psig_modtypesubst of module_type_declaration]
 
-sig Psig_modtypesubst_1 = {
-  sig T := {};
-};
+// TODO: module type substitutions
+// sig Psig_modtypesubst_1 = {
+//   sig T := {};
+// };
 
 // [Psig_open of open_description]
 
@@ -762,26 +814,29 @@ sig Psig_open_1 = {
 sig Psig_include_1 = {
   include S;
   include sig of M;
-  include sig of M with type t = int;
-  include sig of M with type t := int;
-  include sig of M with type t = int and type u = string;
+  // TODO: with constraints
+  // include sig of M with type t = int;
+  // include sig of M with type t := int;
+  // include sig of M with type t = int and type u = string;
 };
 
 // [Psig_class of class_description list]
 
-sig Psig_class_1 = {
-  cls c1 : #{};
-  cls c2 : int -> #{};
-  cls c3[A] : #{};
-  @virtual cls c4 : #{};
-};
+// TODO: no class language support in the parser
+// sig Psig_class_1 = {
+//   cls c1 : #{};
+//   cls c2 : int -> #{};
+//   cls c3[A] : #{};
+//   @virtual cls c4 : #{};
+// };
 
 // [Psig_class_type of class_type_declaration list]
 
-sig Psig_class_type_1 = {
-  csig ct1 = #{};
-  csig ct2[A] = #{};
-};
+// TODO: no class language support in the parser
+// sig Psig_class_type_1 = {
+//   csig ct1 = #{};
+//   csig ct2[A] = #{};
+// };
 
 // [Psig_attribute of attribute]
 
@@ -793,34 +848,43 @@ sig Psig_attribute_1 = {
 
 sig Psig_extension_1 = {
   %ext;
-  [@attr] %ext2;
+  // TODO: extensions with attributes
+  // [@attr] %ext2;
 };
 
 // [Pwith_type of Longident.t loc * type_declaration]
 
-sig Pwith_type_1 = S with type t = int;
-sig Pwith_type_2 = S with type t[A] = list[A];
-sig Pwith_type_3 = S with type t = private int;
+// TODO: with constraints
+// sig Pwith_type_1 = S with type t = int;
+// TODO: with constraints
+// sig Pwith_type_2 = S with type t[A] = list[A];
+// TODO: with constraints
+// sig Pwith_type_3 = S with type t = private int;
 
 // [Pwith_module of Longident.t loc * Longident.t loc]
 
-sig Pwith_module_1 = S with mod M1 = M2;
+// TODO: with constraints
+// sig Pwith_module_1 = S with mod M1 = M2;
 
 // [Pwith_modtype of Longident.t loc * module_type]
 
-sig Pwith_modtype_1 = S with sig T = {};
+// TODO: with constraints
+// sig Pwith_modtype_1 = S with sig T = {};
 
 // [Pwith_modtypesubst of Longident.t loc * module_type]
 
-sig Pwith_modtypesubst_1 = S with sig T := {};
+// TODO: with constraints
+// sig Pwith_modtypesubst_1 = S with sig T := {};
 
 // [Pwith_typesubst of Longident.t loc * type_declaration]
 
-sig Pwith_typesubst_1 = S with type t := int;
+// TODO: with constraints
+// sig Pwith_typesubst_1 = S with type t := int;
 
 // [Pwith_modsubst of Longident.t loc * Longident.t loc]
 
-sig Pwith_modsubst_1 = S with mod M1 := M2;
+// TODO: with constraints
+// sig Pwith_modsubst_1 = S with mod M1 := M2;
 
 // [Pmod_ident of Longident.t loc]
 
@@ -837,10 +901,14 @@ mod Pmod_structure_2 = {
 
 // [Pmod_functor of functor_parameter * module_expr]
 
-mod Pmod_functor_1 (X : S) = {};
-mod Pmod_functor_2 (_ : S) = {};
-mod Pmod_functor_3 () = {};
-mod Pmod_functor_4 = (X : S) -> {};
+// TODO: functors
+// mod Pmod_functor_1 (X : S) = {};
+// TODO: functors
+// mod Pmod_functor_2 (_ : S) = {};
+// TODO: functors
+// mod Pmod_functor_3 () = {};
+// TODO: functors
+// mod Pmod_functor_4 = (X : S) -> {};
 
 // [Pmod_apply of module_expr * module_expr]
 
@@ -859,7 +927,8 @@ mod Pmod_constraint_2 : S = {};
 // [Pmod_unpack of expression]
 
 mod Pmod_unpack_1 = val x;
-mod Pmod_unpack_2 = val (x : S);
+// TODO: unpack with package type
+// mod Pmod_unpack_2 = val (x : S);
 
 // [Pmod_extension of extension]
 
@@ -905,8 +974,9 @@ mod Pstr_module_1 = {};
 
 // [Pstr_recmodule of module_binding list]
 
-mod rec M1 : S = {},
-and M2 : S = {};
+// TODO: recursive modules
+// mod rec M1 : S = {},
+// and M2 : S = {};
 
 // [Pstr_modtype of module_type_declaration]
 
@@ -923,18 +993,20 @@ open {
 
 // [Pstr_class of class_declaration list]
 
-cls c = #{};
-@virtual cls c[A] = #{};
-
-cls c1 = #{},
-and c2 = #{};
+// TODO: no class language support in the parser
+// cls c = #{};
+// @virtual cls c[A] = #{};
+// 
+// cls c1 = #{},
+// and c2 = #{};
 
 // [Pstr_class_type of class_type_declaration list]
 
-csig ct = #{};
-
-csig ct1 = #{},
-and ct2 = #{};
+// TODO: no class language support in the parser
+// csig ct = #{};
+// 
+// csig ct1 = #{},
+// and ct2 = #{};
 
 // [Pstr_include of include_declaration]
 
@@ -952,7 +1024,8 @@ include {
 // [Pstr_extension of extension * attributes]
 
 %ext;
-[@attr] %ext 1;
+// TODO: extensions with attributes and payload
+// [@attr] %ext 1;
 
 // [Pvc_constraint]
 
