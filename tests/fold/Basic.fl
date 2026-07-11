@@ -90,8 +90,8 @@ val ptyp_alias_2 : (A @ {> #A }) = x;
 
 // [Ptyp_variant of row_field list * closed_flag * label list option]
 
-val e : { #A } = #A;
-val e : { #A | #B } = #A;
+val ptyp_variant_1 : { #A } = #A;
+val ptyp_variant_2 : { #A | #B } = #A;
 // TODO: closed variant bounds
 // val e : {< #A | #B } = #A;
 val e : {> #A | #B } = #A;

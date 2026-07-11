@@ -116,20 +116,21 @@ end = struct
     | `infix (_, "@", `id alias, typ_fl) ->
       Ml.Typ.alias ~loc (eval typ_fl) (Ml.mkloc loc (String.lowercase_ascii alias))
     | `parens typ -> eval typ
-    (* (~l: T1) -> T2 *)
+    (* (~l: int) -> bool *)
     | `infix
         ( _,
           "->",
           `parens (`seq [ `prefix (_, "~", `postfix (_, ":", `id l)); arg_fl ]),
           ret_fl
         ) -> Ml.Typ.arrow ~loc (Asttypes.Labelled l) (eval arg_fl) (eval ret_fl)
-    (* (~l?: T1) -> T2 *)
+    (* (~l?: int) -> bool *)
     | `infix
         ( _,
           "->",
           `parens (`seq [ `prefix (_, "~", `postfix (_, "?:", `id l)); arg_fl ]),
           ret_fl
         ) -> Ml.Typ.arrow ~loc (Asttypes.Optional l) (eval arg_fl) (eval ret_fl)
+    (* FIXME: review precedence *)
     (* [A] :: T1 -> T2 ("::" binds tighter than "->") *)
     | `infix (_, "->", `infix (_, "::", `brackets vars_fl, arg_fl), ret_fl) ->
       Ml.Typ.poly ~loc (eval_poly_vars vars_fl)
