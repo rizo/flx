@@ -307,8 +307,8 @@
      (pvb_attributes ())))))
  (pstr_desc
   (Pstr_value Nonrecursive
-   (((pvb_pat ((ppat_desc (Ppat_var "e")) (ppat_attributes ()))) (pvb_expr
-     ((pexp_desc (Pexp_variant "A" None)) (pexp_attributes ())))
+   (((pvb_pat ((ppat_desc (Ppat_var "ptyp_variant_1")) (ppat_attributes ())))
+     (pvb_expr ((pexp_desc (Pexp_variant "A" None)) (pexp_attributes ())))
      (pvb_constraint
      (Some
       (Pvc_constraint ((locally_abstract_univars ()) (typ
@@ -319,8 +319,8 @@
      (pvb_attributes ())))))
  (pstr_desc
   (Pstr_value Nonrecursive
-   (((pvb_pat ((ppat_desc (Ppat_var "e")) (ppat_attributes ()))) (pvb_expr
-     ((pexp_desc (Pexp_variant "A" None)) (pexp_attributes ())))
+   (((pvb_pat ((ppat_desc (Ppat_var "ptyp_variant_2")) (ppat_attributes ())))
+     (pvb_expr ((pexp_desc (Pexp_variant "A" None)) (pexp_attributes ())))
      (pvb_constraint
      (Some
       (Pvc_constraint ((locally_abstract_univars ()) (typ
